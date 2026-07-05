@@ -1,18 +1,35 @@
 {
-  "name": "music_share",
+  "name": "music-share",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Convertit un lien Qobuz/Spotify/Apple Music/Deezer vers les autres plateformes",
+  "main": "out/main/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "test:chain": "tsx test-chain.ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^26.1.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^43.0.0",
+    "electron-vite": "^5.0.0",
+    "tailwindcss": "^4.3.2",
     "tsx": "^4.22.5",
-    "typescript": "^6.0.3"
-  }
+    "typescript": "^6.0.3",
+    "vite": "^7.3.6"
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "productName": "Music Share"
 }
