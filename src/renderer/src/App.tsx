@@ -291,8 +291,7 @@ function BonusChip({ link }: { link: PlatformLink }) {
 function formatShareMessage(result: ResolveResult, links: PlatformLink[], bonus: PlatformLink[]): string {
   const lines = [`🎵 ${result.title} — ${result.artist}`, ""];
   for (const link of [...links, ...bonus]) {
-    const suffix = link.kind === "search" ? " (recherche)" : "";
-    lines.push(`${link.name}${suffix} : ${link.url}`);
+    lines.push(`${link.name} : ${link.url}`);
   }
   return lines.join("\n");
 }
