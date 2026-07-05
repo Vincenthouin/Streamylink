@@ -46,7 +46,10 @@
     "mac": {
       "target": "dmg",
       "identity": null,
-      "category": "public.app-category.music"
+      "category": "public.app-category.music",
+      "extendInfo": {
+        "LSUIElement": true
+      }
     },
     "dmg": {
       "title": "Music Share"

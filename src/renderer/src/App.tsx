@@ -16,8 +16,35 @@ export default function App() {
   const [enabled, setEnabled] = useState<EnabledPlatforms>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const requestId = useRef(0);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => saveSettings(enabled), [enabled]);
+
+  // la fenêtre adopte la hauteur du contenu (bornée par le main process)
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => window.musicShare?.setHeight?.(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // focus de l'input à l'affichage depuis la barre de menus, Échap pour masquer
+  useEffect(() => {
+    const offShown = window.musicShare?.onShown?.(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") window.musicShare?.hide?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      offShown?.();
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   const resolve = useCallback(async (url: string) => {
     const trimmed = url.trim();
@@ -32,22 +59,48 @@ export default function App() {
   const onPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData("text");
     setInput(text);
+    setShowSettings(false);
     resolve(text);
     e.preventDefault();
   };
 
   return (
-    <div className="min-h-screen text-zinc-200 antialiased">
-      <header className="titlebar relative flex h-12 items-end justify-center pb-1">
-        <h1 className="text-[13px] font-semibold tracking-wide text-zinc-400">
-          {showSettings ? "Paramètres" : "Music Share"}
-        </h1>
+    <div ref={contentRef} className="flex flex-col gap-3 p-3 text-zinc-200 antialiased">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            spellCheck={false}
+            autoFocus
+            placeholder="Colle un lien Qobuz, Spotify, Apple Music, Deezer…"
+            onChange={(e) => setInput(e.target.value)}
+            onPaste={onPaste}
+            onKeyDown={(e) => e.key === "Enter" && resolve(input)}
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-3.5 pr-8 text-[13px] text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-white/25 focus:bg-white/[0.07]"
+          />
+          {input && (
+            <button
+              onClick={() => {
+                setInput("");
+                setState({ status: "idle" });
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
+              title="Effacer"
+            >
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
         <button
           onClick={() => setShowSettings((v) => !v)}
-          className={`absolute right-4 bottom-0.5 rounded-lg p-1.5 transition ${
+          className={`shrink-0 rounded-xl p-2.5 transition ${
             showSettings ? "bg-white/10 text-zinc-200" : "text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
           }`}
-          title={showSettings ? "Retour" : "Paramètres"}
+          title={showSettings ? "Fermer les paramètres" : "Paramètres"}
         >
           {showSettings ? (
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -60,61 +113,26 @@ export default function App() {
             </svg>
           )}
         </button>
-      </header>
+      </div>
 
       {showSettings ? (
         <Settings enabled={enabled} setEnabled={setEnabled} />
       ) : (
-      <main className="mx-auto flex max-w-md flex-col gap-4 px-5 pb-6 pt-2">
-        <div className="titlebar-none relative">
-          <input
-            type="text"
-            value={input}
-            spellCheck={false}
-            placeholder="Colle un lien Qobuz, Spotify, Apple Music ou Deezer…"
-            onChange={(e) => setInput(e.target.value)}
-            onPaste={onPaste}
-            onKeyDown={(e) => e.key === "Enter" && resolve(input)}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[13px] text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-white/25 focus:bg-white/[0.07]"
-          />
-          {input && (
-            <button
-              onClick={() => {
-                setInput("");
-                setState({ status: "idle" });
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
-              title="Effacer"
-            >
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
+        <>
+          {state.status === "loading" && (
+            <div className="flex justify-center py-4">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-600 border-t-zinc-200" />
+            </div>
           )}
-        </div>
 
-        {state.status === "idle" && (
-          <p className="pt-16 text-center text-[13px] leading-relaxed text-zinc-500">
-            Colle un lien de partage pour obtenir
-            <br />
-            ses équivalents sur les autres plateformes.
-          </p>
-        )}
+          {state.status === "error" && (
+            <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-red-300">
+              {state.message}
+            </div>
+          )}
 
-        {state.status === "loading" && (
-          <div className="flex justify-center pt-16">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-zinc-200" />
-          </div>
-        )}
-
-        {state.status === "error" && (
-          <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-[13px] leading-relaxed text-red-300">
-            {state.message}
-          </div>
-        )}
-
-        {state.status === "done" && <Result result={state.result} enabled={enabled} />}
-      </main>
+          {state.status === "done" && <Result result={state.result} enabled={enabled} />}
+        </>
       )}
     </div>
   );
@@ -133,10 +151,10 @@ function Settings({
     <button
       key={p}
       onClick={() => toggle(p)}
-      className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 py-2.5 px-3.5 text-left transition hover:border-white/20 hover:bg-white/[0.08]"
+      className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-left transition hover:border-white/20 hover:bg-white/[0.08]"
     >
       <span style={{ color: PLATFORM_COLOR[p] ?? "#a1a1aa" }} className="shrink-0">
-        {PLATFORM_LOGO(p, "h-5 w-5")}
+        {PLATFORM_LOGO(p, "h-4.5 w-4.5")}
       </span>
       <span className="flex-1 truncate text-[13px] font-medium text-zinc-200">
         {PLATFORM_NAMES[p]}
@@ -156,16 +174,16 @@ function Settings({
   );
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-2 px-5 pb-6 pt-2">
-      <p className="px-1 pb-1 text-[11px] uppercase tracking-wider text-zinc-500">
+    <div className="flex flex-col gap-1.5">
+      <p className="px-1 text-[10px] uppercase tracking-wider text-zinc-500">
         Plateformes principales
       </p>
       {MAIN_PLATFORMS.map(row)}
-      <p className="px-1 pb-1 pt-3 text-[11px] uppercase tracking-wider text-zinc-500">
+      <p className="px-1 pt-2 text-[10px] uppercase tracking-wider text-zinc-500">
         Autres plateformes
       </p>
       {BONUS_PLATFORMS.map(row)}
-    </main>
+    </div>
   );
 }
 
@@ -173,31 +191,31 @@ function Result({ result, enabled }: { result: ResolveResult; enabled: EnabledPl
   const links = result.links.filter((l) => enabled[l.platform]);
   const bonus = result.bonus.filter((l) => enabled[l.platform]);
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-2.5">
         {result.image ? (
           <img
             src={result.image}
             alt=""
-            className="h-20 w-20 shrink-0 rounded-lg object-cover shadow-lg shadow-black/40"
+            className="h-12 w-12 shrink-0 rounded-lg object-cover shadow-lg shadow-black/40"
             draggable={false}
           />
         ) : (
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-white/10 text-2xl">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/10 text-lg">
             🎵
           </div>
         )}
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold text-zinc-100" title={result.title}>
+          <p className="truncate text-[13px] font-semibold text-zinc-100" title={result.title}>
             {result.title}
           </p>
-          <p className="truncate text-[13px] text-zinc-400" title={result.artist}>
+          <p className="truncate text-[12px] text-zinc-400" title={result.artist}>
             {result.artist}
           </p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         {links.map((link) => (
           <PlatformRow key={link.platform} link={link} />
         ))}
@@ -212,7 +230,7 @@ function Result({ result, enabled }: { result: ResolveResult; enabled: EnabledPl
       )}
 
       {links.length === 0 && bonus.length === 0 ? (
-        <p className="pt-2 text-center text-[13px] text-zinc-500">
+        <p className="py-1 text-center text-[13px] text-zinc-500">
           Aucune plateforme activée — ouvre les paramètres (roue dentée).
         </p>
       ) : (
@@ -240,7 +258,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
   const color = PLATFORM_COLOR[link.platform] ?? "#a1a1aa";
 
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 py-2.5 pl-3.5 pr-2 transition hover:border-white/20 hover:bg-white/[0.08]">
+    <div className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 py-1.5 pl-3.5 pr-1.5 transition hover:border-white/20 hover:bg-white/[0.08]">
       <a
         href={link.url}
         target="_blank"
@@ -249,7 +267,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
         title={`Ouvrir dans ${link.name}`}
       >
         <span style={{ color }} className="shrink-0">
-          {PLATFORM_LOGO(link.platform, "h-5 w-5")}
+          {PLATFORM_LOGO(link.platform, "h-4.5 w-4.5")}
         </span>
         <span className="truncate text-[13px] font-medium text-zinc-200">{link.name}</span>
         {link.kind === "search" && (
@@ -309,7 +327,7 @@ function CopyAllButton({
   return (
     <button
       onClick={() => copy(formatShareMessage(result, links, bonus))}
-      className={`rounded-xl py-3 text-[13px] font-semibold transition ${
+      className={`rounded-xl py-2.5 text-[13px] font-semibold transition ${
         copied
           ? "bg-emerald-500/15 text-emerald-400"
           : "bg-zinc-100 text-zinc-900 hover:bg-white"
