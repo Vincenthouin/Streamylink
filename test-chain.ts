@@ -51,7 +51,9 @@ function extractMeta(html: string, key: string): string | undefined {
   const re = new RegExp(`<meta[^>]+(?:property|name)=["']${key}["'][^>]*>`, "i");
   const tag = html.match(re)?.[0];
   if (!tag) return undefined;
-  const content = tag.match(/content=["']([^"']*)["']/i)?.[1];
+  // délimiteur respecté : une valeur entre "…" peut contenir des apostrophes
+  const content =
+    tag.match(/content="([^"]*)"/i)?.[1] ?? tag.match(/content='([^']*)'/i)?.[1];
   return content ? decodeHtmlEntities(content) : undefined;
 }
 
