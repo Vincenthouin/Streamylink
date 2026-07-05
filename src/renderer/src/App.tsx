@@ -1,6 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PlatformLink, ResolveResult } from "../../shared/types";
+import { BONUS_PLATFORMS, MAIN_PLATFORMS, PLATFORM_NAMES } from "../../shared/platforms";
 import { CheckIcon, CopyIcon, PLATFORM_COLOR, PLATFORM_LOGO } from "./logos";
+import { loadSettings, saveSettings, type EnabledPlatforms } from "./settings";
 
 type State =
   | { status: "idle" }
@@ -11,7 +13,11 @@ type State =
 export default function App() {
   const [input, setInput] = useState("");
   const [state, setState] = useState<State>({ status: "idle" });
+  const [enabled, setEnabled] = useState<EnabledPlatforms>(loadSettings);
+  const [showSettings, setShowSettings] = useState(false);
   const requestId = useRef(0);
+
+  useEffect(() => saveSettings(enabled), [enabled]);
 
   const resolve = useCallback(async (url: string) => {
     const trimmed = url.trim();
@@ -32,10 +38,33 @@ export default function App() {
 
   return (
     <div className="min-h-screen text-zinc-200 antialiased">
-      <header className="titlebar flex h-12 items-end justify-center pb-1">
-        <h1 className="text-[13px] font-semibold tracking-wide text-zinc-400">Music Share</h1>
+      <header className="titlebar relative flex h-12 items-end justify-center pb-1">
+        <h1 className="text-[13px] font-semibold tracking-wide text-zinc-400">
+          {showSettings ? "Paramètres" : "Music Share"}
+        </h1>
+        <button
+          onClick={() => setShowSettings((v) => !v)}
+          className={`absolute right-4 bottom-0.5 rounded-lg p-1.5 transition ${
+            showSettings ? "bg-white/10 text-zinc-200" : "text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
+          }`}
+          title={showSettings ? "Retour" : "Paramètres"}
+        >
+          {showSettings ? (
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          )}
+        </button>
       </header>
 
+      {showSettings ? (
+        <Settings enabled={enabled} setEnabled={setEnabled} />
+      ) : (
       <main className="mx-auto flex max-w-md flex-col gap-4 px-5 pb-6 pt-2">
         <div className="titlebar-none relative">
           <input
@@ -84,13 +113,65 @@ export default function App() {
           </div>
         )}
 
-        {state.status === "done" && <Result result={state.result} />}
+        {state.status === "done" && <Result result={state.result} enabled={enabled} />}
       </main>
+      )}
     </div>
   );
 }
 
-function Result({ result }: { result: ResolveResult }) {
+function Settings({
+  enabled,
+  setEnabled,
+}: {
+  enabled: EnabledPlatforms;
+  setEnabled: React.Dispatch<React.SetStateAction<EnabledPlatforms>>;
+}) {
+  const toggle = (p: string) => setEnabled((s) => ({ ...s, [p]: !s[p] }));
+
+  const row = (p: string) => (
+    <button
+      key={p}
+      onClick={() => toggle(p)}
+      className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 py-2.5 px-3.5 text-left transition hover:border-white/20 hover:bg-white/[0.08]"
+    >
+      <span style={{ color: PLATFORM_COLOR[p] ?? "#a1a1aa" }} className="shrink-0">
+        {PLATFORM_LOGO(p, "h-5 w-5")}
+      </span>
+      <span className="flex-1 truncate text-[13px] font-medium text-zinc-200">
+        {PLATFORM_NAMES[p]}
+      </span>
+      <span
+        className={`relative h-5 w-9 shrink-0 rounded-full transition ${
+          enabled[p] ? "bg-emerald-500/80" : "bg-white/15"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+            enabled[p] ? "left-[18px]" : "left-0.5"
+          }`}
+        />
+      </span>
+    </button>
+  );
+
+  return (
+    <main className="mx-auto flex max-w-md flex-col gap-2 px-5 pb-6 pt-2">
+      <p className="px-1 pb-1 text-[11px] uppercase tracking-wider text-zinc-500">
+        Plateformes principales
+      </p>
+      {MAIN_PLATFORMS.map(row)}
+      <p className="px-1 pb-1 pt-3 text-[11px] uppercase tracking-wider text-zinc-500">
+        Autres plateformes
+      </p>
+      {BONUS_PLATFORMS.map(row)}
+    </main>
+  );
+}
+
+function Result({ result, enabled }: { result: ResolveResult; enabled: EnabledPlatforms }) {
+  const links = result.links.filter((l) => enabled[l.platform]);
+  const bonus = result.bonus.filter((l) => enabled[l.platform]);
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -117,20 +198,26 @@ function Result({ result }: { result: ResolveResult }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        {result.links.map((link) => (
+        {links.map((link) => (
           <PlatformRow key={link.platform} link={link} />
         ))}
       </div>
 
-      {result.bonus.length > 0 && (
+      {bonus.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {result.bonus.map((link) => (
+          {bonus.map((link) => (
             <BonusChip key={link.platform} link={link} />
           ))}
         </div>
       )}
 
-      <CopyAllButton result={result} />
+      {links.length === 0 && bonus.length === 0 ? (
+        <p className="pt-2 text-center text-[13px] text-zinc-500">
+          Aucune plateforme activée — ouvre les paramètres (roue dentée).
+        </p>
+      ) : (
+        <CopyAllButton result={result} links={links} bonus={bonus} />
+      )}
     </div>
   );
 }
@@ -201,20 +288,28 @@ function BonusChip({ link }: { link: PlatformLink }) {
   );
 }
 
-function formatShareMessage(result: ResolveResult): string {
+function formatShareMessage(result: ResolveResult, links: PlatformLink[], bonus: PlatformLink[]): string {
   const lines = [`🎵 ${result.title} — ${result.artist}`, ""];
-  for (const link of [...result.links, ...result.bonus]) {
+  for (const link of [...links, ...bonus]) {
     const suffix = link.kind === "search" ? " (recherche)" : "";
     lines.push(`${link.name}${suffix} : ${link.url}`);
   }
   return lines.join("\n");
 }
 
-function CopyAllButton({ result }: { result: ResolveResult }) {
+function CopyAllButton({
+  result,
+  links,
+  bonus,
+}: {
+  result: ResolveResult;
+  links: PlatformLink[];
+  bonus: PlatformLink[];
+}) {
   const [copied, copy] = useCopy();
   return (
     <button
-      onClick={() => copy(formatShareMessage(result))}
+      onClick={() => copy(formatShareMessage(result, links, bonus))}
       className={`rounded-xl py-3 text-[13px] font-semibold transition ${
         copied
           ? "bg-emerald-500/15 text-emerald-400"

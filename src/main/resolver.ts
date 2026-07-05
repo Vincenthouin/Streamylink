@@ -12,6 +12,7 @@
  * - Odesli fournit les liens bonus (Tidal, Amazon Music, …).
  */
 import type { PlatformLink, ResolveResult } from "../shared/types";
+import { BONUS_PLATFORMS, PLATFORM_NAMES } from "../shared/platforms";
 
 const BOT_UA = "facebookexternalhit/1.1";
 const FETCH_TIMEOUT_MS = 15_000;
@@ -247,20 +248,6 @@ async function findAppleMusic(info: TrackInfo): Promise<string | null> {
 
 // ─── Odesli (liens bonus) ────────────────────────────────────────────
 
-const ODESLI_NAMES: Record<string, string> = {
-  tidal: "TIDAL",
-  amazonMusic: "Amazon Music",
-  youtube: "YouTube",
-  youtubeMusic: "YouTube Music",
-  napster: "Napster",
-  pandora: "Pandora",
-  anghami: "Anghami",
-  boomplay: "Boomplay",
-  audius: "Audius",
-  yandex: "Yandex Music",
-  soundcloud: "SoundCloud",
-};
-
 async function getOdesliBonus(url: string): Promise<PlatformLink[]> {
   try {
     const res = await get(
@@ -270,8 +257,8 @@ async function getOdesliBonus(url: string): Promise<PlatformLink[]> {
     const data = (await res.json()) as any;
     const links: PlatformLink[] = [];
     for (const [platform, entry] of Object.entries<any>(data.linksByPlatform ?? {})) {
-      if (ODESLI_NAMES[platform] && entry?.url) {
-        links.push({ platform, name: ODESLI_NAMES[platform], url: entry.url, kind: "direct" });
+      if ((BONUS_PLATFORMS as readonly string[]).includes(platform) && entry?.url) {
+        links.push({ platform, name: PLATFORM_NAMES[platform], url: entry.url, kind: "direct" });
       }
     }
     return links;

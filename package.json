@@ -8,10 +8,11 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "test:chain": "tsx test-chain.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dist": "electron-vite build && electron-builder --mac dmg"
   },
   "keywords": [],
-  "author": "",
+  "author": "UX Team",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
@@ -21,6 +22,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^43.0.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "tailwindcss": "^4.3.2",
     "tsx": "^4.22.5",
@@ -31,5 +33,23 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
-  "productName": "Music Share"
+  "productName": "Music Share",
+  "build": {
+    "appId": "com.uxteam.musicshare",
+    "productName": "Music Share",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**"
+    ],
+    "mac": {
+      "target": "dmg",
+      "identity": null,
+      "category": "public.app-category.music"
+    },
+    "dmg": {
+      "title": "Music Share"
+    }
+  }
 }
