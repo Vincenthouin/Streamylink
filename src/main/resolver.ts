@@ -33,6 +33,7 @@ interface DeezerTrack {
   artistName: string;
   isrc?: string;
   cover?: string;
+  albumId?: number;
 }
 
 // ─── Helpers HTTP / HTML ─────────────────────────────────────────────
@@ -180,6 +181,7 @@ function toDeezerTrack(data: any): DeezerTrack {
     artistName: data.artist?.name ?? "?",
     isrc: data.isrc,
     cover: data.album?.cover_xl ?? data.album?.cover_big ?? data.album?.cover_medium,
+    albumId: data.album?.id,
   };
 }
 
@@ -218,19 +220,13 @@ function normalize(s: string): string {
     .trim();
 }
 
-async function findAppleMusic(info: TrackInfo): Promise<string | null> {
-  const term = encodeURIComponent(`${info.artist} ${info.title}`);
-  const res = await get(
-    `https://itunes.apple.com/search?term=${term}&entity=song&limit=10&country=FR`,
-  );
-  if (!res.ok) return null;
-  const data = (await res.json()) as any;
-  const results: any[] = data?.results ?? [];
-  if (!results.length) return null;
+const ITUNES_COUNTRIES = ["FR", "US"];
 
+function bestItunesTrack(results: any[], info: TrackInfo): string | null {
   const nArtist = normalize(info.artist);
   const nTitle = normalize(info.title);
   const scored = results
+    .filter((r) => r.wrapperType === "track" || r.trackViewUrl)
     .map((r) => {
       const a = normalize(r.artistName ?? "");
       const t = normalize(r.trackName ?? "");
@@ -246,7 +242,41 @@ async function findAppleMusic(info: TrackInfo): Promise<string | null> {
   // score < 2 = ni l'artiste ni le titre ne matchent vraiment : on préfère
   // ne rien renvoyer qu'un mauvais morceau
   const best = scored[0];
-  return best.score >= 2 ? best.r.trackViewUrl : null;
+  return best && best.score >= 2 ? best.r.trackViewUrl : null;
+}
+
+async function findAppleMusic(info: TrackInfo, deezer: DeezerTrack | null): Promise<string | null> {
+  // 1. recherche par terme — couvre la plupart des cas
+  const term = encodeURIComponent(`${info.artist} ${info.title}`);
+  for (const country of ITUNES_COUNTRIES) {
+    const res = await get(
+      `https://itunes.apple.com/search?term=${term}&entity=song&limit=10&country=${country}`,
+    );
+    if (!res.ok) continue;
+    const data = (await res.json()) as any;
+    const url = bestItunesTrack(data?.results ?? [], info);
+    if (url) return url;
+  }
+
+  // 2. l'index de recherche iTunes est incomplet (sorties récentes, petits
+  //    artistes) : fallback par UPC de l'album Deezer, qui interroge le
+  //    catalogue directement et renvoie les pistes de l'album
+  if (!deezer?.albumId) return null;
+  const albumRes = await get(`https://api.deezer.com/album/${deezer.albumId}`);
+  if (!albumRes.ok) return null;
+  const upc = ((await albumRes.json()) as any)?.upc;
+  if (!upc) return null;
+
+  for (const country of ITUNES_COUNTRIES) {
+    const res = await get(
+      `https://itunes.apple.com/lookup?upc=${encodeURIComponent(upc)}&entity=song&country=${country}`,
+    );
+    if (!res.ok) continue;
+    const data = (await res.json()) as any;
+    const url = bestItunesTrack(data?.results ?? [], info);
+    if (url) return url;
+  }
+  return null;
 }
 
 // ─── Odesli (liens bonus) ────────────────────────────────────────────
@@ -311,10 +341,9 @@ export async function resolveLink(rawUrl: string): Promise<ResolveResult> {
     }
   }
 
-  [deezer, appleUrl] = await Promise.all([
-    deezer ?? findDeezer(info),
-    appleUrl ?? findAppleMusic(info),
-  ]);
+  // Deezer d'abord : son album (UPC) sert de fallback à la résolution Apple Music
+  deezer = deezer ?? (await findDeezer(info));
+  appleUrl = appleUrl ?? (await findAppleMusic(info, deezer));
 
   const bonus = await getOdesliBonus(deezer?.link ?? url);
 
