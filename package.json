@@ -9,7 +9,7 @@
     "preview": "electron-vite preview",
     "test:chain": "tsx test-chain.ts",
     "typecheck": "tsc --noEmit",
-    "dist": "electron-vite build && electron-builder --mac dmg"
+    "dist": "electron-vite build && electron-builder --mac dmg --x64"
   },
   "keywords": [],
   "author": "UX Team",
@@ -44,7 +44,14 @@
       "out/**"
     ],
     "mac": {
-      "target": "dmg",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "identity": null,
       "category": "public.app-category.music",
       "extendInfo": {
