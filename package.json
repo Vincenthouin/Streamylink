@@ -41,7 +41,8 @@
       "output": "release"
     },
     "files": [
-      "out/**"
+      "out/**",
+      "resources/**"
     ],
     "mac": {
       "target": [
@@ -60,6 +61,9 @@
     },
     "dmg": {
       "title": "Music Share"
-    }
+    },
+    "asarUnpack": [
+      "resources/**"
+    ]
   }
 }

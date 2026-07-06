@@ -126,10 +126,16 @@ app.whenReady().then(() => {
 
   // image template (noir + alpha) : macOS l'adapte aux barres claires/sombres
   const icon = nativeImage.createFromPath(trayIconPath);
-  icon.addRepresentation({ scaleFactor: 2, buffer: fs.readFileSync(trayIcon2xPath) });
+  try {
+    icon.addRepresentation({ scaleFactor: 2, buffer: fs.readFileSync(trayIcon2xPath) });
+  } catch {
+    // pas de représentation @2x, l'icône 1x sera mise à l'échelle
+  }
   icon.setTemplateImage(true);
 
   tray = new Tray(icon);
+  // si l'icône n'a pas pu être chargée, un glyphe texte garde le tray visible
+  if (icon.isEmpty()) tray.setTitle("♪");
   tray.setToolTip("Music Share");
   tray.on("click", toggleWindow);
   tray.on("right-click", () => {
