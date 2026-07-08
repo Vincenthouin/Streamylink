@@ -1,4 +1,4 @@
-import { BONUS_PLATFORMS, MAIN_PLATFORMS } from "../../shared/platforms";
+import { BONUS_PLATFORMS, MAIN_PLATFORMS } from "../shared/platforms";
 
 export type EnabledPlatforms = Record<string, boolean>;
 

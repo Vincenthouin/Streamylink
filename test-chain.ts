@@ -7,7 +7,7 @@
  * Entrées acceptées : Qobuz, Spotify, Apple Music, Deezer.
  * Utilise le même resolver que l'app (src/main/resolver.ts).
  */
-import { resolveLink, ResolveError } from "./src/main/resolver";
+import { resolveLink, ResolveError } from "./src/core/resolver";
 
 async function main() {
   const url = process.argv[2];

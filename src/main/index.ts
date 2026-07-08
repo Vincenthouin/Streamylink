@@ -3,7 +3,7 @@ import path from "node:path";
 import fs from "node:fs";
 import trayIconPath from "../../resources/trayTemplate.png?asset";
 import trayIcon2xPath from "../../resources/trayTemplate@2x.png?asset";
-import { resolveLink, ResolveError } from "./resolver";
+import { resolveLink, ResolveError } from "../core/resolver";
 import type { ResolveResponse } from "../shared/types";
 
 const WIN_WIDTH = 440;

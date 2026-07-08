@@ -9,7 +9,11 @@
     "preview": "electron-vite preview",
     "test:chain": "tsx test-chain.ts",
     "typecheck": "tsc --noEmit",
-    "dist": "electron-vite build && electron-builder --mac dmg --x64"
+    "dist": "electron-vite build && electron-builder --mac dmg --x64",
+    "web:dev": "vite --config vite.web.config.ts",
+    "web:api": "tsx web/server.ts",
+    "web:build": "vite build --config vite.web.config.ts && esbuild web/server.ts --bundle --platform=node --format=esm --outfile=dist-web/server.mjs --packages=external",
+    "web:start": "node dist-web/server.mjs"
   },
   "keywords": [],
   "author": "UX Team",

@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+/* l'UI partagée vit hors de la racine Vite (web/), on l'indique à Tailwind */
+@source "../../src/ui";
+
+html,
+body {
+  background: #0c0c10;
+}
