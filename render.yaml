@@ -1,0 +1,10 @@
+# Déploiement de la version web sur Render (https://render.com)
+# Dashboard → New → Blueprint → sélectionner ce repo : tout est lu ici.
+services:
+  - type: web
+    name: streamylink
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run web:build
+    startCommand: node dist-web/server.mjs
+    healthCheckPath: /

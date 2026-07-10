@@ -105,7 +105,7 @@ ipcMain.handle("resolve-link", async (_e, url: string): Promise<ResolveResponse>
   } catch (e) {
     if (e instanceof ResolveError) return { ok: false, error: e.message };
     console.error(e);
-    return { ok: false, error: "Erreur inattendue pendant la résolution." };
+    return { ok: false, error: "Unexpected error while resolving." };
   }
 });
 
@@ -140,7 +140,7 @@ app.whenReady().then(() => {
   tray.on("click", toggleWindow);
   tray.on("right-click", () => {
     tray!.popUpContextMenu(
-      Menu.buildFromTemplate([{ label: "Quitter Music Share", role: "quit" }]),
+      Menu.buildFromTemplate([{ label: "Quit Music Share", role: "quit" }]),
     );
   });
 

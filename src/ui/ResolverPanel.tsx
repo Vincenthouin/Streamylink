@@ -1,14 +1,16 @@
 /**
- * Panneau complet de résolution (input, paramètres, résultats), partagé
- * entre l'app Electron (overlay barre de menus) et la page web. Chaque
- * coquille fournit sa fonction `resolveLink` (IPC côté Electron, fetch
- * vers /api/resolve côté web).
+ * Panneau complet de résolution (input, onboarding, paramètres, résultats),
+ * partagé entre l'app Electron (overlay barre de menus) et la page web.
+ * Chaque coquille fournit sa fonction `resolveLink` (IPC côté Electron,
+ * fetch vers /api/resolve côté web). Interface en anglais.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PlatformLink, ResolveResponse, ResolveResult } from "../shared/types";
 import { BONUS_PLATFORMS, MAIN_PLATFORMS, PLATFORM_NAMES } from "../shared/platforms";
 import { CheckIcon, CopyIcon, PLATFORM_COLOR, PLATFORM_LOGO } from "./logos";
-import { loadSettings, saveSettings, type EnabledPlatforms } from "./settings";
+import { hasStoredSettings, loadSettings, saveSettings, type EnabledPlatforms } from "./settings";
+
+const ALL_PLATFORMS = [...MAIN_PLATFORMS, ...BONUS_PLATFORMS];
 
 type State =
   | { status: "idle" }
@@ -27,17 +29,21 @@ export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
   const [state, setState] = useState<State>({ status: "idle" });
   const [enabled, setEnabled] = useState<EnabledPlatforms>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
+  // onboarding : au premier lancement d'une recherche, l'utilisateur choisit
+  // ses plateformes ; on ne persiste qu'à partir de la validation
+  const [stored, setStored] = useState(hasStoredSettings);
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const requestId = useRef(0);
 
-  useEffect(() => saveSettings(enabled), [enabled]);
+  useEffect(() => {
+    if (stored) saveSettings(enabled);
+  }, [enabled, stored]);
 
-  const resolve = useCallback(
+  const doResolve = useCallback(
     async (url: string) => {
-      const trimmed = url.trim();
-      if (!trimmed) return;
       const id = ++requestId.current;
       setState({ status: "loading" });
-      const res = await resolveLink(trimmed);
+      const res = await resolveLink(url);
       if (id !== requestId.current) return; // une résolution plus récente est en cours
       setState(
         res.ok ? { status: "done", result: res.result } : { status: "error", message: res.error },
@@ -46,6 +52,27 @@ export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
     [resolveLink],
   );
 
+  const resolve = useCallback(
+    (url: string) => {
+      const trimmed = url.trim();
+      if (!trimmed) return;
+      if (!stored) {
+        setPendingUrl(trimmed); // onboarding d'abord, résolution à la validation
+        return;
+      }
+      doResolve(trimmed);
+    },
+    [stored, doResolve],
+  );
+
+  const finishOnboarding = () => {
+    setStored(true);
+    saveSettings(enabled);
+    const url = pendingUrl;
+    setPendingUrl(null);
+    if (url) doResolve(url);
+  };
+
   const onPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData("text");
     setInput(text);
@@ -53,6 +80,8 @@ export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
     resolve(text);
     e.preventDefault();
   };
+
+  const onboarding = pendingUrl !== null;
 
   return (
     <div className="flex flex-col gap-3 p-3 text-zinc-200 antialiased">
@@ -64,7 +93,7 @@ export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
             value={input}
             spellCheck={false}
             autoFocus
-            placeholder="Colle un lien Qobuz, Spotify, Apple Music, Deezer…"
+            placeholder="Paste a Qobuz, Spotify, Apple Music or Deezer link…"
             onChange={(e) => setInput(e.target.value)}
             onPaste={onPaste}
             onKeyDown={(e) => e.key === "Enter" && resolve(input)}
@@ -74,10 +103,11 @@ export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
             <button
               onClick={() => {
                 setInput("");
+                setPendingUrl(null);
                 setState({ status: "idle" });
               }}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
-              title="Effacer"
+              title="Clear"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M18 6 6 18M6 6l12 12" />
@@ -90,7 +120,7 @@ export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
           className={`shrink-0 rounded-xl p-2.5 transition ${
             showSettings ? "bg-white/10 text-zinc-200" : "text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
           }`}
-          title={showSettings ? "Fermer les paramètres" : "Paramètres"}
+          title={showSettings ? "Close settings" : "Settings"}
         >
           {showSettings ? (
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -106,7 +136,28 @@ export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
       </div>
 
       {showSettings ? (
-        <Settings enabled={enabled} setEnabled={setEnabled} />
+        <div className="flex flex-col gap-1.5">
+          <p className="px-1 text-[10px] uppercase tracking-wider text-zinc-500">Music platforms</p>
+          <PlatformToggleList enabled={enabled} setEnabled={setEnabled} />
+        </div>
+      ) : onboarding ? (
+        <div className="flex flex-col gap-3">
+          <div className="px-1">
+            <p className="text-[13px] font-semibold text-zinc-100">
+              Which platforms do you want links for?
+            </p>
+            <p className="pt-0.5 text-[12px] text-zinc-500">
+              You can change this anytime in settings.
+            </p>
+          </div>
+          <PlatformToggleList enabled={enabled} setEnabled={setEnabled} />
+          <button
+            onClick={finishOnboarding}
+            className="rounded-xl bg-zinc-100 py-2.5 text-[13px] font-semibold text-zinc-900 transition hover:bg-white"
+          >
+            Continue
+          </button>
+        </div>
       ) : (
         <>
           {state.status === "loading" && (
@@ -128,7 +179,7 @@ export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
   );
 }
 
-function Settings({
+function PlatformToggleList({
   enabled,
   setEnabled,
 }: {
@@ -137,42 +188,33 @@ function Settings({
 }) {
   const toggle = (p: string) => setEnabled((s) => ({ ...s, [p]: !s[p] }));
 
-  const row = (p: string) => (
-    <button
-      key={p}
-      onClick={() => toggle(p)}
-      className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-left transition hover:border-white/20 hover:bg-white/[0.08]"
-    >
-      <span style={{ color: PLATFORM_COLOR[p] ?? "#a1a1aa" }} className="shrink-0">
-        {PLATFORM_LOGO(p, "h-4.5 w-4.5")}
-      </span>
-      <span className="flex-1 truncate text-[13px] font-medium text-zinc-200">
-        {PLATFORM_NAMES[p]}
-      </span>
-      <span
-        className={`relative h-5 w-9 shrink-0 rounded-full transition ${
-          enabled[p] ? "bg-emerald-500/80" : "bg-white/15"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
-            enabled[p] ? "left-[18px]" : "left-0.5"
-          }`}
-        />
-      </span>
-    </button>
-  );
-
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="px-1 text-[10px] uppercase tracking-wider text-zinc-500">
-        Plateformes principales
-      </p>
-      {MAIN_PLATFORMS.map(row)}
-      <p className="px-1 pt-2 text-[10px] uppercase tracking-wider text-zinc-500">
-        Autres plateformes
-      </p>
-      {BONUS_PLATFORMS.map(row)}
+      {ALL_PLATFORMS.map((p) => (
+        <button
+          key={p}
+          onClick={() => toggle(p)}
+          className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-left transition hover:border-white/20 hover:bg-white/[0.08]"
+        >
+          <span style={{ color: PLATFORM_COLOR[p] ?? "#a1a1aa" }} className="shrink-0">
+            {PLATFORM_LOGO(p, "h-4.5 w-4.5")}
+          </span>
+          <span className="flex-1 truncate text-[13px] font-medium text-zinc-200">
+            {PLATFORM_NAMES[p]}
+          </span>
+          <span
+            className={`relative h-5 w-9 shrink-0 rounded-full transition ${
+              enabled[p] ? "bg-emerald-500/80" : "bg-white/15"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+                enabled[p] ? "left-[18px]" : "left-0.5"
+              }`}
+            />
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -221,7 +263,7 @@ function Result({ result, enabled }: { result: ResolveResult; enabled: EnabledPl
 
       {links.length === 0 && bonus.length === 0 ? (
         <p className="py-1 text-center text-[13px] text-zinc-500">
-          Aucune plateforme activée — ouvre les paramètres (roue dentée).
+          No platform enabled — open settings (gear icon).
         </p>
       ) : (
         <CopyAllButton result={result} links={links} bonus={bonus} />
@@ -254,7 +296,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
         target="_blank"
         rel="noreferrer"
         className="flex min-w-0 flex-1 items-center gap-3"
-        title={`Ouvrir dans ${link.name}`}
+        title={`Open in ${link.name}`}
       >
         <span style={{ color }} className="shrink-0">
           {PLATFORM_LOGO(link.platform, "h-4.5 w-4.5")}
@@ -262,7 +304,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
         <span className="truncate text-[13px] font-medium text-zinc-200">{link.name}</span>
         {link.kind === "search" && (
           <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-zinc-500">
-            recherche
+            search
           </span>
         )}
       </a>
@@ -271,7 +313,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
         className={`shrink-0 rounded-lg p-2 transition ${
           copied ? "text-emerald-400" : "text-zinc-500 hover:bg-white/10 hover:text-zinc-200"
         }`}
-        title="Copier le lien"
+        title="Copy link"
       >
         {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
       </button>
@@ -289,9 +331,9 @@ function BonusChip({ link }: { link: PlatformLink }) {
           ? "border-emerald-500/40 text-emerald-400"
           : "border-white/10 text-zinc-400 hover:border-white/25 hover:text-zinc-200"
       }`}
-      title={`Copier le lien ${link.name}`}
+      title={`Copy ${link.name} link`}
     >
-      {copied ? "copié !" : link.name}
+      {copied ? "copied!" : link.name}
     </button>
   );
 }
@@ -323,7 +365,7 @@ function CopyAllButton({
           : "bg-zinc-100 text-zinc-900 hover:bg-white"
       }`}
     >
-      {copied ? "Message copié !" : "Tout copier"}
+      {copied ? "Message copied!" : "Copy all"}
     </button>
   );
 }

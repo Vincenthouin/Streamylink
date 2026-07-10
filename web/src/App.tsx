@@ -9,10 +9,10 @@ import type { ResolveResponse } from "../../src/shared/types";
 async function resolveViaApi(url: string): Promise<ResolveResponse> {
   try {
     const res = await fetch(`/api/resolve?url=${encodeURIComponent(url)}`);
-    if (!res.ok) return { ok: false, error: `Le serveur a répondu ${res.status}.` };
+    if (!res.ok) return { ok: false, error: `The server responded ${res.status}.` };
     return (await res.json()) as ResolveResponse;
   } catch {
-    return { ok: false, error: "Impossible de joindre le serveur — hors ligne ?" };
+    return { ok: false, error: "Could not reach the server — are you offline?" };
   }
 }
 
@@ -26,18 +26,14 @@ export default function App() {
           </span>
           <h1 className="text-lg font-semibold tracking-wide text-zinc-100">Music Share</h1>
         </div>
-        <p className="text-center text-[13px] text-zinc-500">
-          Un lien, toutes les plateformes.
-        </p>
+        <p className="text-center text-[13px] text-zinc-500">One link, every platform.</p>
       </header>
 
-      <main className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40">
+      <main className="w-full max-w-md">
         <ResolverPanel resolveLink={resolveViaApi} />
       </main>
 
-      <footer className="mt-6 text-[11px] text-zinc-600">
-        Qobuz · Spotify · Apple Music · Deezer — et plus via Odesli
-      </footer>
+      <footer className="mt-6 text-[11px] text-zinc-600">Powered by Odesli</footer>
     </div>
   );
 }

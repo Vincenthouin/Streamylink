@@ -32,7 +32,7 @@ async function handleResolve(target: string): Promise<ResolveResponse> {
     if (e instanceof ResolveError) response = { ok: false, error: e.message };
     else {
       console.error(e);
-      response = { ok: false, error: "Erreur inattendue pendant la résolution." };
+      response = { ok: false, error: "Unexpected error while resolving." };
     }
   }
   if (response.ok) cache.set(target, { at: Date.now(), response });
@@ -58,7 +58,7 @@ const server = createServer(async (req, res) => {
     const target = url.searchParams.get("url")?.trim();
     const response: ResolveResponse = target
       ? await handleResolve(target)
-      : { ok: false, error: "Paramètre url manquant." };
+      : { ok: false, error: "Missing url parameter." };
     res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
     res.end(JSON.stringify(response));
     return;

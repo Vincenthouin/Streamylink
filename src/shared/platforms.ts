@@ -8,12 +8,6 @@ export const BONUS_PLATFORMS = [
   "amazonMusic",
   "youtube",
   "youtubeMusic",
-  "napster",
-  "pandora",
-  "anghami",
-  "boomplay",
-  "audius",
-  "yandex",
   "soundcloud",
 ] as const;
 
@@ -26,11 +20,5 @@ export const PLATFORM_NAMES: Record<string, string> = {
   amazonMusic: "Amazon Music",
   youtube: "YouTube",
   youtubeMusic: "YouTube Music",
-  napster: "Napster",
-  pandora: "Pandora",
-  anghami: "Anghami",
-  boomplay: "Boomplay",
-  audius: "Audius",
-  yandex: "Yandex Music",
   soundcloud: "SoundCloud",
 };

@@ -4,12 +4,17 @@ export type EnabledPlatforms = Record<string, boolean>;
 
 const STORAGE_KEY = "musicshare.enabledPlatforms";
 
-/** Par défaut : les 4 plateformes principales + TIDAL et Amazon Music. */
+/** Pré-sélection de l'onboarding : Spotify, Apple Music et Deezer. */
 export function defaultSettings(): EnabledPlatforms {
   const s: EnabledPlatforms = {};
-  for (const p of MAIN_PLATFORMS) s[p] = true;
-  for (const p of BONUS_PLATFORMS) s[p] = p === "tidal" || p === "amazonMusic";
+  for (const p of MAIN_PLATFORMS) s[p] = p !== "qobuz";
+  for (const p of BONUS_PLATFORMS) s[p] = false;
   return s;
+}
+
+/** true si l'utilisateur a déjà choisi ses plateformes (onboarding passé). */
+export function hasStoredSettings(): boolean {
+  return localStorage.getItem(STORAGE_KEY) !== null;
 }
 
 export function loadSettings(): EnabledPlatforms {

@@ -43,16 +43,16 @@ async function get(url: string, headers?: Record<string, string>): Promise<Respo
     return await fetch(url, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   } catch (e: any) {
     if (e?.name === "TimeoutError") {
-      throw new ResolveError(`Délai dépassé en contactant ${new URL(url).hostname}`);
+      throw new ResolveError(`Timed out while contacting ${new URL(url).hostname}`);
     }
-    throw new ResolveError(`Impossible de joindre ${new URL(url).hostname} (hors ligne ?)`);
+    throw new ResolveError(`Could not reach ${new URL(url).hostname} — are you offline?`);
   }
 }
 
 async function fetchAsBot(url: string): Promise<string> {
   const res = await get(url, { "User-Agent": BOT_UA });
   if (!res.ok) {
-    throw new ResolveError(`${new URL(url).hostname} a répondu ${res.status} — lien invalide ?`);
+    throw new ResolveError(`${new URL(url).hostname} responded ${res.status} — invalid link?`);
   }
   return res.text();
 }
@@ -88,14 +88,14 @@ function detectPlatform(url: string): SourcePlatform {
   try {
     host = new URL(url).hostname;
   } catch {
-    throw new ResolveError("Ce n'est pas un lien valide.");
+    throw new ResolveError("This is not a valid link.");
   }
   if (/(^|\.)qobuz\.com$/.test(host)) return "qobuz";
   if (/(^|\.)spotify\.com$/.test(host)) return "spotify";
   if (/(^|\.)music\.apple\.com$/.test(host)) return "appleMusic";
   if (/(^|\.)deezer\.(com|page\.link)$/.test(host)) return "deezer";
   throw new ResolveError(
-    "Plateforme non reconnue — colle un lien Qobuz, Spotify, Apple Music ou Deezer.",
+    "Unrecognized platform — paste a Qobuz, Spotify, Apple Music or Deezer link.",
   );
 }
 
@@ -109,7 +109,7 @@ async function getQobuzTrackInfo(url: string): Promise<TrackInfo> {
   const image = extractMeta(html, "og:image");
 
   if (!ogTitle) {
-    throw new ResolveError("Titre introuvable sur la page Qobuz — le lien pointe-t-il vers un morceau ?");
+    throw new ResolveError("No title found on the Qobuz page — does the link point to a track?");
   }
 
   let title: string | undefined;
@@ -120,7 +120,7 @@ async function getQobuzTrackInfo(url: string): Promise<TrackInfo> {
   }
   const finalArtist = artist ?? ogTitle.match(/^.* by (.*) is on Qobuz\.com$/)?.[1];
   if (!title || !finalArtist) {
-    throw new ResolveError(`Métadonnées Qobuz inattendues : "${ogTitle}"`);
+    throw new ResolveError(`Unexpected Qobuz metadata: "${ogTitle}"`);
   }
 
   return { title, artist: finalArtist, isrc, image };
@@ -133,17 +133,17 @@ async function getSpotifyTrackInfo(url: string): Promise<TrackInfo> {
   const image = extractMeta(html, "og:image");
   const artist = desc?.split(" · ")[0];
   if (!title || !artist) {
-    throw new ResolveError("Titre/artiste introuvables sur la page Spotify — le lien pointe-t-il vers un morceau ?");
+    throw new ResolveError("No title/artist found on the Spotify page — does the link point to a track?");
   }
   return { title, artist, image };
 }
 
 async function getDeezerTrackInfo(url: string): Promise<TrackInfo & { deezer: DeezerTrack }> {
   const id = url.match(/\/track\/(\d+)/)?.[1];
-  if (!id) throw new ResolveError("Lien Deezer non reconnu (attendu : …/track/<id>).");
+  if (!id) throw new ResolveError("Unrecognized Deezer link (expected …/track/<id>).");
   const res = await get(`https://api.deezer.com/track/${id}`);
   const data = (await res.json()) as any;
-  if (data.error) throw new ResolveError("Morceau introuvable chez Deezer — lien invalide ?");
+  if (data.error) throw new ResolveError("Track not found on Deezer — invalid link?");
   return {
     title: data.title,
     artist: data.artist?.name,
@@ -157,12 +157,12 @@ async function getAppleMusicTrackInfo(url: string): Promise<TrackInfo & { appleU
   const u = new URL(url);
   const id = u.searchParams.get("i") ?? u.pathname.match(/\/song\/[^/]+\/(\d+)/)?.[1];
   if (!id) {
-    throw new ResolveError("Lien Apple Music non reconnu — utilise un lien de morceau (pas d'album).");
+    throw new ResolveError("Unrecognized Apple Music link — use a song link (not an album).");
   }
   const res = await get(`https://itunes.apple.com/lookup?id=${id}&entity=song&country=FR`);
   const data = (await res.json()) as any;
   const song = data?.results?.find((r: any) => r.wrapperType === "track");
-  if (!song) throw new ResolveError("Morceau introuvable chez Apple Music — lien invalide ?");
+  if (!song) throw new ResolveError("Track not found on Apple Music — invalid link?");
   return {
     title: song.trackName,
     artist: song.artistName,
