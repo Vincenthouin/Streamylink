@@ -25,7 +25,7 @@ const FETCH_TIMEOUT_MS = 15_000;
 
 export class ResolveError extends Error {}
 
-interface TrackInfo {
+export interface TrackInfo {
   title: string;
   artist: string;
   isrc?: string;
@@ -117,13 +117,19 @@ function detectPlatform(url: string): SourcePlatform {
 
 // ─── Extraction des métadonnées selon la plateforme ──────────────────
 
-async function getQobuzTrackInfo(url: string): Promise<TrackInfo> {
-  // La page publique exige un UA de bot, que le CDN refuse depuis les IP de
-  // datacenter ; l'endpoint opengraph, lui, répond à un UA de navigateur.
-  // On l'interroge directement, avec les UA de bots en secours.
-  const og = url.match(/^https?:\/\/open\.qobuz\.com\/(track|album)\/([A-Za-z0-9]+)/i);
-  const target = og ? `https://www.qobuz.com/opengraph/${og[1]}/${og[2]}` : url;
-  const html = await fetchAsBot(target, og ? [BROWSER_UA, ...UA_CHAIN] : UA_CHAIN);
+/**
+ * URL de la page opengraph Qobuz (servie avec CORS ouvert et sans exigence
+ * d'UA de bot), ou null si le lien n'est pas un lien open.qobuz.com.
+ * Exportée : la version web fait ce fetch côté navigateur, car le CDN de
+ * Qobuz refuse toutes les requêtes venant d'IP de datacenter (403).
+ */
+export function qobuzOgUrl(url: string): string | null {
+  const m = url.match(/^https?:\/\/open\.qobuz\.com\/(track|album)\/([A-Za-z0-9]+)/i);
+  return m ? `https://www.qobuz.com/opengraph/${m[1]}/${m[2]}` : null;
+}
+
+/** Extrait les métadonnées du HTML d'une page opengraph Qobuz. */
+export function parseQobuzOgHtml(html: string): TrackInfo {
   const ogTitle = extractMeta(html, "og:title"); // "Imagine by John Lennon is on Qobuz.com"
   const artist = extractMeta(html, "twitter:audio:artist_name");
   const isrc = extractMeta(html, "music:isrc");
@@ -145,6 +151,13 @@ async function getQobuzTrackInfo(url: string): Promise<TrackInfo> {
   }
 
   return { title, artist: finalArtist, isrc, image };
+}
+
+async function getQobuzTrackInfo(url: string): Promise<TrackInfo> {
+  // endpoint opengraph en direct (UA navigateur accepté), UA de bots en secours
+  const target = qobuzOgUrl(url);
+  const html = await fetchAsBot(target ?? url, target ? [BROWSER_UA, ...UA_CHAIN] : UA_CHAIN);
+  return parseQobuzOgHtml(html);
 }
 
 async function getSpotifyTrackInfo(url: string): Promise<TrackInfo> {
@@ -333,7 +346,7 @@ function qobuzSearchUrl(info: TrackInfo): string {
 
 // ─── Point d'entrée ──────────────────────────────────────────────────
 
-export async function resolveLink(rawUrl: string): Promise<ResolveResult> {
+export async function resolveLink(rawUrl: string, qobuzInfo?: TrackInfo): Promise<ResolveResult> {
   const url = rawUrl.trim();
   const platform = detectPlatform(url);
 
@@ -343,7 +356,9 @@ export async function resolveLink(rawUrl: string): Promise<ResolveResult> {
 
   switch (platform) {
     case "qobuz":
-      info = await getQobuzTrackInfo(url);
+      // qobuzInfo : métadonnées déjà extraites côté client (version web),
+      // le CDN de Qobuz étant inaccessible depuis les IP de datacenter
+      info = qobuzInfo?.title && qobuzInfo.artist ? qobuzInfo : await getQobuzTrackInfo(url);
       break;
     case "spotify":
       info = await getSpotifyTrackInfo(url);

@@ -4,11 +4,31 @@
  * navigateur à cause du CORS des plateformes).
  */
 import { ResolverPanel } from "../../src/ui/ResolverPanel";
+import { qobuzOgUrl } from "../../src/core/resolver";
 import type { ResolveResponse } from "../../src/shared/types";
 
-async function resolveViaApi(url: string): Promise<ResolveResponse> {
+/** Le CDN de Qobuz refuse les requêtes des IP de datacenter : le navigateur
+ *  (IP résidentielle) fetch lui-même la page opengraph — servie avec CORS
+ *  ouvert — et l'envoie au serveur, qui n'a plus qu'à la parser. */
+async function fetchQobuzOgHtml(url: string): Promise<string | undefined> {
+  const og = qobuzOgUrl(url.trim());
+  if (!og) return undefined;
   try {
-    const res = await fetch(`/api/resolve?url=${encodeURIComponent(url)}`);
+    const res = await fetch(og);
+    return res.ok ? await res.text() : undefined;
+  } catch {
+    return undefined; // le serveur retentera de son côté
+  }
+}
+
+async function resolveViaApi(url: string): Promise<ResolveResponse> {
+  const qobuzHtml = await fetchQobuzOgHtml(url);
+  try {
+    const res = await fetch("/api/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, qobuzHtml }),
+    });
     if (!res.ok) return { ok: false, error: `The server responded ${res.status}.` };
     return (await res.json()) as ResolveResponse;
   } catch {
