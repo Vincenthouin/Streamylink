@@ -15,6 +15,12 @@ import type { PlatformLink, ResolveResult } from "../shared/types";
 import { BONUS_PLATFORMS, PLATFORM_NAMES } from "../shared/platforms";
 
 const BOT_UA = "facebookexternalhit/1.1";
+const BROWSER_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36";
+// Certains CDN (Qobuz notamment) renvoient 403 quand un UA de bot vérifié
+// arrive depuis une IP de datacenter (serveur web hébergé) : on essaie
+// plusieurs identités jusqu'à obtenir une page avec des OG tags.
+const UA_CHAIN = [BOT_UA, "Twitterbot/1.0", BROWSER_UA];
 const FETCH_TIMEOUT_MS = 15_000;
 
 export class ResolveError extends Error {}
@@ -49,12 +55,22 @@ async function get(url: string, headers?: Record<string, string>): Promise<Respo
   }
 }
 
-async function fetchAsBot(url: string): Promise<string> {
-  const res = await get(url, { "User-Agent": BOT_UA });
-  if (!res.ok) {
-    throw new ResolveError(`${new URL(url).hostname} responded ${res.status} — invalid link?`);
+async function fetchAsBot(url: string, uas: string[] = UA_CHAIN): Promise<string> {
+  let lastStatus: number | null = null;
+  for (const ua of uas) {
+    const res = await get(url, { "User-Agent": ua });
+    if (res.ok) {
+      const html = await res.text();
+      if (/property=["']og:/i.test(html)) return html;
+      continue; // page servie mais sans OG tags (shell SPA) : UA suivant
+    }
+    lastStatus = res.status;
   }
-  return res.text();
+  throw new ResolveError(
+    lastStatus
+      ? `${new URL(url).hostname} responded ${lastStatus} — invalid link?`
+      : `Could not read track info from ${new URL(url).hostname} — invalid link?`,
+  );
 }
 
 function extractMeta(html: string, key: string): string | undefined {
@@ -102,7 +118,12 @@ function detectPlatform(url: string): SourcePlatform {
 // ─── Extraction des métadonnées selon la plateforme ──────────────────
 
 async function getQobuzTrackInfo(url: string): Promise<TrackInfo> {
-  const html = await fetchAsBot(url);
+  // La page publique exige un UA de bot, que le CDN refuse depuis les IP de
+  // datacenter ; l'endpoint opengraph, lui, répond à un UA de navigateur.
+  // On l'interroge directement, avec les UA de bots en secours.
+  const og = url.match(/^https?:\/\/open\.qobuz\.com\/(track|album)\/([A-Za-z0-9]+)/i);
+  const target = og ? `https://www.qobuz.com/opengraph/${og[1]}/${og[2]}` : url;
+  const html = await fetchAsBot(target, og ? [BROWSER_UA, ...UA_CHAIN] : UA_CHAIN);
   const ogTitle = extractMeta(html, "og:title"); // "Imagine by John Lennon is on Qobuz.com"
   const artist = extractMeta(html, "twitter:audio:artist_name");
   const isrc = extractMeta(html, "music:isrc");
