@@ -1,6 +1,6 @@
 {
   "name": "music-share",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Convertit un lien Qobuz/Spotify/Apple Music/Deezer vers les autres plateformes",
   "main": "out/main/index.js",
   "scripts": {
