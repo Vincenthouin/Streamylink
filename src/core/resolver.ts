@@ -173,8 +173,20 @@ async function getSpotifyTrackInfo(url: string): Promise<TrackInfo> {
 }
 
 async function getDeezerTrackInfo(url: string): Promise<TrackInfo & { deezer: DeezerTrack }> {
-  const id = url.match(/\/track\/(\d+)/)?.[1];
-  if (!id) throw new ResolveError("Unrecognized Deezer link (expected …/track/<id>).");
+  let id = url.match(/\/track\/(\d+)/)?.[1];
+  if (!id) {
+    // liens courts (link.deezer.com/s/…) : suivre la redirection jusqu'à
+    // l'URL finale …/track/<id>, puis lire l'id (dans le chemin ou le query)
+    try {
+      const redirected = await get(url); // fetch suit les redirections par défaut
+      const finalUrl = decodeURIComponent(redirected.url);
+      redirected.body?.cancel();
+      id = finalUrl.match(/\/track\/(\d+)/)?.[1];
+    } catch {
+      // on lève l'erreur générique ci-dessous
+    }
+  }
+  if (!id) throw new ResolveError("Unrecognized Deezer link — could not find the track.");
   const res = await get(`https://api.deezer.com/track/${id}`);
   const data = (await res.json()) as any;
   if (data.error) throw new ResolveError("Track not found on Deezer — invalid link?");
