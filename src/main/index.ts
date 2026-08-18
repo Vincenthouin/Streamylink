@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, screen, shell, Tray } from "electron";
+import { app, BrowserWindow, clipboard, ipcMain, Menu, nativeImage, screen, shell, Tray } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import trayIconPath from "../../resources/trayTemplate.png?asset";
@@ -118,6 +118,12 @@ ipcMain.on("set-height", (_e, contentHeight: number) => {
 });
 
 ipcMain.on("hide-window", () => win?.hide());
+
+// copie riche : le presse-papiers reçoit à la fois le HTML (noms cliquables,
+// URL masquée) et le texte brut de repli
+ipcMain.on("copy-rich", (_e, html: string, text: string) => {
+  clipboard.write({ html, text });
+});
 
 app.whenReady().then(() => {
   app.dock?.hide(); // utilitaire de barre de menus : pas d'icône Dock

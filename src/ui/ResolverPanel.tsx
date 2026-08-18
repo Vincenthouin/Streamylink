@@ -22,9 +22,12 @@ export interface ResolverPanelProps {
   resolveLink: (url: string) => Promise<ResolveResponse>;
   /** fourni par la coquille Electron pour redonner le focus à l'affichage */
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  /** copie riche (HTML + texte) — Electron la fournit via IPC ; sur le web
+   *  on retombe sur l'API Clipboard du navigateur */
+  copyRich?: (html: string, text: string) => Promise<void>;
 }
 
-export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
+export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanelProps) {
   const [input, setInput] = useState("");
   const [state, setState] = useState<State>({ status: "idle" });
   const [enabled, setEnabled] = useState<EnabledPlatforms>(loadSettings);
@@ -172,7 +175,9 @@ export function ResolverPanel({ resolveLink, inputRef }: ResolverPanelProps) {
             </div>
           )}
 
-          {state.status === "done" && <Result result={state.result} enabled={enabled} />}
+          {state.status === "done" && (
+            <Result result={state.result} enabled={enabled} copyRich={copyRich} />
+          )}
         </>
       )}
     </div>
@@ -219,7 +224,15 @@ function PlatformToggleList({
   );
 }
 
-function Result({ result, enabled }: { result: ResolveResult; enabled: EnabledPlatforms }) {
+function Result({
+  result,
+  enabled,
+  copyRich,
+}: {
+  result: ResolveResult;
+  enabled: EnabledPlatforms;
+  copyRich?: (html: string, text: string) => Promise<void>;
+}) {
   const links = result.links.filter((l) => enabled[l.platform]);
   const bonus = result.bonus.filter((l) => enabled[l.platform]);
   return (
@@ -266,7 +279,7 @@ function Result({ result, enabled }: { result: ResolveResult; enabled: EnabledPl
           No platform enabled — open settings (gear icon).
         </p>
       ) : (
-        <CopyAllButton result={result} links={links} bonus={bonus} />
+        <CopyAllButton result={result} links={links} bonus={bonus} copyRich={copyRich} />
       )}
     </div>
   );
@@ -347,28 +360,88 @@ const PLATFORM_HEART: Record<string, string> = {
   amazonMusic: "💙",
 };
 
-function formatShareMessage(result: ResolveResult, links: PlatformLink[], bonus: PlatformLink[]): string {
-  const lines = [`🎵 **${result.title} — ${result.artist}**`, ""];
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Version texte brut (repli quand la cible n'accepte pas le HTML). */
+function formatShareText(result: ResolveResult, links: PlatformLink[], bonus: PlatformLink[]): string {
+  const lines = [`🎵 ${result.title} — ${result.artist}`, ""];
   for (const link of [...links, ...bonus]) {
     const heart = PLATFORM_HEART[link.platform] ?? "🩶";
-    lines.push(`${heart} [${link.name}](${link.url})`);
+    lines.push(`${heart} ${link.name}: ${link.url}`);
   }
   return lines.join("\n");
+}
+
+/** Version HTML : titre en gras, nom de plateforme cliquable (URL masquée). */
+function formatShareHtml(result: ResolveResult, links: PlatformLink[], bonus: PlatformLink[]): string {
+  const rows = [...links, ...bonus].map((link) => {
+    const heart = PLATFORM_HEART[link.platform] ?? "🩶";
+    return `${heart} <a href="${escapeHtml(link.url)}">${escapeHtml(link.name)}</a>`;
+  });
+  return (
+    `🎵 <b>${escapeHtml(result.title)} — ${escapeHtml(result.artist)}</b>` +
+    `<br><br>${rows.join("<br>")}`
+  );
+}
+
+/** Écrit HTML + texte dans le presse-papiers. Electron passe par le main
+ *  process (copyRich) ; le web utilise l'API Clipboard, avec repli texte. */
+async function copyRichOrPlain(
+  html: string,
+  text: string,
+  copyRich?: (html: string, text: string) => Promise<void>,
+): Promise<void> {
+  try {
+    if (copyRich) return await copyRich(html, text);
+    if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([text], { type: "text/plain" }),
+        }),
+      ]);
+      return;
+    }
+  } catch {
+    // cible/permission sans copie riche : on retombe sur le texte brut
+  }
+  await navigator.clipboard.writeText(text);
 }
 
 function CopyAllButton({
   result,
   links,
   bonus,
+  copyRich,
 }: {
   result: ResolveResult;
   links: PlatformLink[];
   bonus: PlatformLink[];
+  copyRich?: (html: string, text: string) => Promise<void>;
 }) {
-  const [copied, copy] = useCopy();
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const onClick = async () => {
+    await copyRichOrPlain(
+      formatShareHtml(result, links, bonus),
+      formatShareText(result, links, bonus),
+      copyRich,
+    );
+    setCopied(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
     <button
-      onClick={() => copy(formatShareMessage(result, links, bonus))}
+      onClick={onClick}
       className={`rounded-xl py-2.5 text-[13px] font-semibold transition ${
         copied
           ? "bg-emerald-500/15 text-emerald-400"

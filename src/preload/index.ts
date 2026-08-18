@@ -11,6 +11,9 @@ const api = {
   hide: (): void => {
     ipcRenderer.send("hide-window");
   },
+  copyRich: (html: string, text: string): void => {
+    ipcRenderer.send("copy-rich", html, text);
+  },
   /** Appelé quand la fenêtre est (ré)affichée depuis la barre de menus. */
   onShown: (cb: () => void): (() => void) => {
     const listener = () => cb();

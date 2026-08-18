@@ -37,7 +37,11 @@ export default function App() {
 
   return (
     <div ref={contentRef}>
-      <ResolverPanel resolveLink={(url) => window.musicShare.resolveLink(url)} inputRef={inputRef} />
+      <ResolverPanel
+        resolveLink={(url) => window.musicShare.resolveLink(url)}
+        inputRef={inputRef}
+        copyRich={async (html, text) => window.musicShare.copyRich(html, text)}
+      />
     </div>
   );
 }
