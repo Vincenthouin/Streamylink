@@ -353,7 +353,10 @@ function spotifySearchUrl(info: TrackInfo): string {
 }
 
 function qobuzSearchUrl(info: TrackInfo): string {
-  return `https://www.qobuz.com/fr-fr/search?q=${encodeURIComponent(`${info.artist} ${info.title}`)}`;
+  // Qobuz n'a pas d'API publique pour un lien direct : on renvoie la
+  // recherche, mais sur l'onglet « titres » (…/search/tracks/…) qui liste
+  // directement les morceaux plutôt que la page albums par défaut.
+  return `https://www.qobuz.com/fr-fr/search/tracks/${encodeURIComponent(`${info.artist} ${info.title}`)}`;
 }
 
 // ─── Point d'entrée ──────────────────────────────────────────────────
