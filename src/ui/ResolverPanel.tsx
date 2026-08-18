@@ -338,10 +338,20 @@ function BonusChip({ link }: { link: PlatformLink }) {
   );
 }
 
+/** Cœur de couleur par plateforme principale, gris pour les autres. */
+const PLATFORM_HEART: Record<string, string> = {
+  spotify: "💚",
+  appleMusic: "❤️",
+  deezer: "💜",
+  qobuz: "🖤",
+  amazonMusic: "💙",
+};
+
 function formatShareMessage(result: ResolveResult, links: PlatformLink[], bonus: PlatformLink[]): string {
-  const lines = [`🎵 ${result.title} — ${result.artist}`, ""];
+  const lines = [`🎵 **${result.title} — ${result.artist}**`, ""];
   for (const link of [...links, ...bonus]) {
-    lines.push(`${link.name} : ${link.url}`);
+    const heart = PLATFORM_HEART[link.platform] ?? "🩶";
+    lines.push(`${heart} [${link.name}](${link.url})`);
   }
   return lines.join("\n");
 }
