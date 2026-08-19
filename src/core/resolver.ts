@@ -187,9 +187,8 @@ async function getDeezerTrackInfo(url: string): Promise<TrackInfo & { deezer: De
     }
   }
   if (!id) throw new ResolveError("Unrecognized Deezer link — could not find the track.");
-  const res = await get(`https://api.deezer.com/track/${id}`);
-  const data = (await res.json()) as any;
-  if (data.error) throw new ResolveError("Track not found on Deezer — invalid link?");
+  const data = await deezerJson(`https://api.deezer.com/track/${id}`);
+  if (!data || data.error) throw new ResolveError("Track not found on Deezer — invalid link?");
   return {
     title: data.title,
     artist: data.artist?.name,
@@ -219,6 +218,33 @@ async function getAppleMusicTrackInfo(url: string): Promise<TrackInfo & { appleU
 
 // ─── Résolution Deezer ───────────────────────────────────────────────
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Requête JSON vers l'API Deezer avec petit retry. Depuis une IP de
+ *  datacenter (serveur web), api.deezer.com renvoie parfois une erreur de
+ *  quota transitoire ou expire — un simple échec faisait disparaître le
+ *  lien Deezer (et donc les bonus Odesli). On distingue les erreurs
+ *  transitoires (à retenter) des erreurs définitives comme « introuvable ».
+ *  Renvoie les données JSON (éventuellement `{error}`), ou null si tous les
+ *  essais échouent. */
+async function deezerJson(url: string, attempts = 3): Promise<any> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await get(url);
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const code = data?.error?.code;
+        // 4 = quota dépassé, 700 = service occupé : transitoire → on retente
+        if (code !== 4 && code !== 700) return data;
+      }
+    } catch {
+      // erreur réseau / timeout : on retente
+    }
+    if (i < attempts - 1) await sleep(300 * (i + 1));
+  }
+  return null;
+}
+
 function toDeezerTrack(data: any): DeezerTrack {
   return {
     id: data.id,
@@ -236,9 +262,8 @@ function toDeezerTrack(data: any): DeezerTrack {
  *  peut pas les résoudre. */
 async function findDeezer(info: TrackInfo): Promise<DeezerTrack | null> {
   if (info.isrc) {
-    const res = await get(`https://api.deezer.com/track/isrc:${encodeURIComponent(info.isrc)}`);
-    const data = (await res.json()) as any;
-    if (!data.error && data.readable !== false) return toDeezerTrack(data);
+    const data = await deezerJson(`https://api.deezer.com/track/isrc:${encodeURIComponent(info.isrc)}`);
+    if (data && !data.error && data.readable !== false) return toDeezerTrack(data);
   }
 
   const queries = [
@@ -246,9 +271,7 @@ async function findDeezer(info: TrackInfo): Promise<DeezerTrack | null> {
     `${info.artist} ${info.title}`,
   ];
   for (const q of queries) {
-    const res = await get(`https://api.deezer.com/search?q=${encodeURIComponent(q)}`);
-    if (!res.ok) continue;
-    const data = (await res.json()) as any;
+    const data = await deezerJson(`https://api.deezer.com/search?q=${encodeURIComponent(q)}`);
     const hit = data?.data?.find((t: any) => t.readable !== false);
     if (hit) return toDeezerTrack(hit);
   }
@@ -308,9 +331,8 @@ async function findAppleMusic(info: TrackInfo, deezer: DeezerTrack | null): Prom
   //    artistes) : fallback par UPC de l'album Deezer, qui interroge le
   //    catalogue directement et renvoie les pistes de l'album
   if (!deezer?.albumId) return null;
-  const albumRes = await get(`https://api.deezer.com/album/${deezer.albumId}`);
-  if (!albumRes.ok) return null;
-  const upc = ((await albumRes.json()) as any)?.upc;
+  const album = await deezerJson(`https://api.deezer.com/album/${deezer.albumId}`);
+  const upc = album?.upc;
   if (!upc) return null;
 
   for (const country of ITUNES_COUNTRIES) {
