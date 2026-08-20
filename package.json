@@ -68,6 +68,7 @@
     },
     "asarUnpack": [
       "resources/**"
-    ]
+    ],
+    "artifactName": "Music-Share-mac.${ext}"
   }
 }

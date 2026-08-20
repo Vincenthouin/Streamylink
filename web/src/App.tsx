@@ -36,6 +36,37 @@ async function resolveViaApi(url: string): Promise<ResolveResponse> {
   }
 }
 
+/** Lien de téléchargement direct du .dmg (nom stable, toujours la dernière
+ *  release GitHub). */
+const DMG_URL =
+  "https://github.com/Vincenthouin/Streamylink/releases/latest/download/Music-Share-mac.dmg";
+
+/** Carte discrète invitant à installer l'app de barre de menus macOS. */
+function DesktopCard() {
+  return (
+    <a
+      href={DMG_URL}
+      className="group mt-4 flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 transition hover:border-white/20 hover:bg-white/[0.06]"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-lg text-zinc-200">
+        {/* logo Apple */}
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
+          <path d="M17.1 1.2c.06.63-.18 1.26-.6 1.74-.43.5-1.1.87-1.75.82-.07-.6.2-1.24.6-1.65.44-.48 1.18-.85 1.75-.91zm2.62 15.32c-.48 1.1-.71 1.6-1.33 2.57-.86 1.36-2.08 3.06-3.6 3.07-1.34.02-1.69-.88-3.51-.87-1.82.01-2.2.9-3.55.88-1.51-.01-2.66-1.54-3.53-2.9-2.43-3.8-2.68-8.26-1.18-10.63 1.06-1.69 2.74-2.68 4.32-2.68 1.6 0 2.61.9 3.94.9 1.29 0 2.07-.9 3.93-.9 1.4 0 2.89.78 3.95 2.13-3.47 1.95-2.91 7.01.56 8.43z" />
+        </svg>
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-zinc-100">Also available on Mac</p>
+        <p className="text-[12px] text-zinc-500">
+          Menu-bar app — paste from anywhere, no browser needed.
+        </p>
+      </div>
+      <span className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-300 transition group-hover:border-white/25 group-hover:text-zinc-100">
+        Download
+      </span>
+    </a>
+  );
+}
+
 export default function App() {
   return (
     <div className="flex min-h-screen flex-col items-center px-4 pt-[10vh] pb-8">
@@ -52,6 +83,8 @@ export default function App() {
       <main className="w-full max-w-md">
         <ResolverPanel resolveLink={resolveViaApi} />
       </main>
+
+      <DesktopCard />
 
       <footer className="mt-6 text-[11px] text-zinc-600">Powered by Odesli</footer>
     </div>
