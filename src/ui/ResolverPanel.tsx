@@ -176,8 +176,8 @@ export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanel
             showAppMode
           />
           <p className="px-1 pt-1 text-[10px] leading-relaxed text-zinc-600">
-            « App » : les boutons ouvrent l'app de bureau (si installée). Les liens copiés
-            en texte restent des liens web cliquables.
+            « App » : les boutons ci-dessus ouvrent l'app de bureau (si installée). Les liens
+            copiés restent des liens web — les messageries ne rendent cliquables que ceux-là.
           </p>
         </div>
       ) : onboarding ? (
@@ -358,10 +358,8 @@ function Result({
       ) : (
         <CopyAllButton
           result={result}
-          webLinks={webLinks}
-          webBonus={webBonus}
-          appLinks={links}
-          appBonus={bonus}
+          links={webLinks}
+          bonus={webBonus}
           copyRich={copyRich}
         />
       )}
@@ -501,19 +499,15 @@ async function copyRichOrPlain(
 
 function CopyAllButton({
   result,
-  webLinks,
-  webBonus,
-  appLinks,
-  appBonus,
+  links,
+  bonus,
   copyRich,
 }: {
   result: ResolveResult;
-  // texte brut : liens web https (cliquables partout, même en texte simple)
-  webLinks: PlatformLink[];
-  webBonus: PlatformLink[];
-  // HTML : liens "app" (nom cliquable → ouvre l'app de bureau en contexte riche)
-  appLinks: PlatformLink[];
-  appBonus: PlatformLink[];
+  // toujours des liens web https : seuls eux sont cliquables dans les
+  // messageries (Teams, Slack…), qui bloquent les schémas d'app
+  links: PlatformLink[];
+  bonus: PlatformLink[];
   copyRich?: (html: string, text: string) => Promise<void>;
 }) {
   const [copied, setCopied] = useState(false);
@@ -521,8 +515,8 @@ function CopyAllButton({
 
   const onClick = async () => {
     await copyRichOrPlain(
-      formatShareHtml(result, appLinks, appBonus),
-      formatShareText(result, webLinks, webBonus),
+      formatShareHtml(result, links, bonus),
+      formatShareText(result, links, bonus),
       copyRich,
     );
     setCopied(true);
