@@ -1,6 +1,6 @@
 {
   "name": "music-share",
-  "version": "1.3.1",
+  "version": "2.0.0",
   "description": "Convertit un lien Qobuz/Spotify/Apple Music/Deezer vers les autres plateformes",
   "main": "out/main/index.js",
   "scripts": {
@@ -13,7 +13,14 @@
     "web:dev": "vite --config vite.web.config.ts",
     "web:api": "tsx web/server.ts",
     "web:build": "vite build --config vite.web.config.ts && esbuild web/server.ts --bundle --platform=node --format=esm --outfile=dist-web/server.mjs --packages=external",
-    "web:start": "node dist-web/server.mjs"
+    "web:start": "node dist-web/server.mjs",
+    "tauri:web:dev": "vite --config vite.tauri.config.ts",
+    "tauri:web:build": "vite build --config vite.tauri.config.ts",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:app": "tauri build --bundles app",
+    "tauri:dmg": "tauri build --bundles app && bash scripts/make-dmg.sh"
   },
   "keywords": [],
   "author": "UX Team",
@@ -21,6 +28,7 @@
   "type": "commonjs",
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "^26.1.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
@@ -28,14 +36,13 @@
     "electron": "^43.0.0",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "tailwindcss": "^4.3.2",
     "tsx": "^4.22.5",
     "typescript": "^6.0.3",
-    "vite": "^7.3.6",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "vite": "^7.3.6"
   },
-  "dependencies": {},
   "productName": "Music Share",
   "build": {
     "appId": "com.uxteam.musicshare",
@@ -69,5 +76,10 @@
       "resources/**"
     ],
     "artifactName": "Music-Share-mac.${ext}"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-http": "^2.5.9",
+    "@tauri-apps/plugin-opener": "^2.5.4"
   }
 }

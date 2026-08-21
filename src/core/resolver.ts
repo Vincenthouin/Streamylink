@@ -25,6 +25,16 @@ const FETCH_TIMEOUT_MS = 15_000;
 
 export class ResolveError extends Error {}
 
+/** Implémentation de fetch utilisée par le resolver. Par défaut le fetch
+ *  global (Node côté serveur web et Electron). La coquille Tauri injecte le
+ *  fetch de son plugin HTTP, qui s'exécute côté Rust et n'est pas soumis au
+ *  CORS de la WebView. */
+type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+let fetchImpl: FetchLike = (input, init) => fetch(input, init);
+export function setFetch(f: FetchLike): void {
+  fetchImpl = f;
+}
+
 export interface TrackInfo {
   title: string;
   artist: string;
@@ -46,7 +56,7 @@ interface DeezerTrack {
 
 async function get(url: string, headers?: Record<string, string>): Promise<Response> {
   try {
-    return await fetch(url, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    return await fetchImpl(url, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   } catch (e: any) {
     if (e?.name === "TimeoutError") {
       throw new ResolveError(`Timed out while contacting ${new URL(url).hostname}`);
