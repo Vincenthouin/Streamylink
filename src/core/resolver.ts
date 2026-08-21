@@ -54,15 +54,29 @@ interface DeezerTrack {
 
 // ─── Helpers HTTP / HTML ─────────────────────────────────────────────
 
-async function get(url: string, headers?: Record<string, string>): Promise<Response> {
-  try {
-    return await fetchImpl(url, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-  } catch (e: any) {
-    if (e?.name === "TimeoutError") {
-      throw new ResolveError(`Timed out while contacting ${new URL(url).hostname}`);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function get(
+  url: string,
+  headers?: Record<string, string>,
+  attempts = 3,
+): Promise<Response> {
+  let lastErr: any;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetchImpl(url, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    } catch (e) {
+      // échec réseau / timeout : souvent transitoire (Spotify, Qobuz… limitent
+      // ou expirent ponctuellement depuis une IP de datacenter) → on retente
+      lastErr = e;
+      if (i < attempts - 1) await sleep(400 * (i + 1));
     }
-    throw new ResolveError(`Could not reach ${new URL(url).hostname} — are you offline?`);
   }
+  const host = new URL(url).hostname;
+  if (lastErr?.name === "TimeoutError") {
+    throw new ResolveError(`Timed out while contacting ${host}`);
+  }
+  throw new ResolveError(`Could not reach ${host} — are you offline?`);
 }
 
 async function fetchAsBot(url: string, uas: string[] = UA_CHAIN): Promise<string> {
@@ -119,7 +133,10 @@ function detectPlatform(url: string): SourcePlatform {
   if (/(^|\.)qobuz\.com$/.test(host)) return "qobuz";
   if (/(^|\.)spotify\.com$/.test(host)) return "spotify";
   if (/(^|\.)music\.apple\.com$/.test(host)) return "appleMusic";
-  if (/(^|\.)deezer\.(com|page\.link)$/.test(host)) return "deezer";
+  // deezer.com, link.deezer.com, et liens de partage mobile deezer/dzr.page.link
+  if (/(^|\.)deezer\.com$/.test(host) || /(^|\.)(deezer|dzr)\.page\.link$/.test(host)) {
+    return "deezer";
+  }
   throw new ResolveError(
     "Unrecognized platform — paste a Qobuz, Spotify, Apple Music or Deezer link.",
   );
@@ -227,8 +244,6 @@ async function getAppleMusicTrackInfo(url: string): Promise<TrackInfo & { appleU
 }
 
 // ─── Résolution Deezer ───────────────────────────────────────────────
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Requête JSON vers l'API Deezer avec petit retry. Depuis une IP de
  *  datacenter (serveur web), api.deezer.com renvoie parfois une erreur de
