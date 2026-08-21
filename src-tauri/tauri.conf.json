@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Music Share",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "identifier": "com.uxteam.musicshare",
   "build": {
     "frontendDist": "../dist-tauri",
@@ -41,5 +41,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE3ODY3OUNGMjNCOEZFMkYKUldRdi9yZ2p6M21HcDhHV1N6K294b1JwbVlqM1pnYW1PS1NyeEp3NVZDZnFabHVQNGVqOEhZelcK",
+      "endpoints": [
+        "https://github.com/Vincenthouin/Streamylink/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
