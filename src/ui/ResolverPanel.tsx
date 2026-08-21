@@ -30,9 +30,11 @@ export interface ResolverPanelProps {
   /** copie riche (HTML + texte) — Electron la fournit via IPC ; sur le web
    *  on retombe sur l'API Clipboard du navigateur */
   copyRich?: (html: string, text: string) => Promise<void>;
+  /** version de l'app, affichée en bas des paramètres */
+  version?: string;
 }
 
-export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanelProps) {
+export function ResolverPanel({ resolveLink, inputRef, copyRich, version }: ResolverPanelProps) {
   const [input, setInput] = useState("");
   const [state, setState] = useState<State>({ status: "idle" });
   const [enabled, setEnabled] = useState<EnabledPlatforms>(loadSettings);
@@ -148,6 +150,9 @@ export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanel
         <div className="flex flex-col gap-1.5">
           <p className="px-1 text-[10px] uppercase tracking-wider text-zinc-500">Music platforms</p>
           <PlatformToggleList enabled={enabled} setEnabled={setEnabled} />
+          {version && (
+            <p className="pt-2 text-center text-[10px] text-zinc-600">Version {version}</p>
+          )}
         </div>
       ) : onboarding ? (
         <div className="flex flex-col gap-3">

@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
@@ -30,6 +31,11 @@ async function copyRich(html: string, text: string): Promise<void> {
 export default function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(() => {});
+  }, []);
 
   // la fenêtre adopte la hauteur du contenu
   useEffect(() => {
@@ -77,7 +83,7 @@ export default function App() {
   return (
     <div ref={contentRef}>
       <UpdateBanner />
-      <ResolverPanel resolveLink={resolve} inputRef={inputRef} copyRich={copyRich} />
+      <ResolverPanel resolveLink={resolve} inputRef={inputRef} copyRich={copyRich} version={version} />
     </div>
   );
 }

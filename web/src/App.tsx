@@ -7,6 +7,8 @@ import { ResolverPanel } from "../../src/ui/ResolverPanel";
 import { qobuzOgUrl } from "../../src/core/resolver";
 import type { ResolveResponse } from "../../src/shared/types";
 
+declare const __APP_VERSION__: string;
+
 /** Le CDN de Qobuz refuse les requêtes des IP de datacenter : le navigateur
  *  (IP résidentielle) fetch lui-même la page opengraph — servie avec CORS
  *  ouvert — et l'envoie au serveur, qui n'a plus qu'à la parser. */
@@ -81,7 +83,7 @@ export default function App() {
       </header>
 
       <main className="w-full max-w-md">
-        <ResolverPanel resolveLink={resolveViaApi} />
+        <ResolverPanel resolveLink={resolveViaApi} version={__APP_VERSION__} />
       </main>
 
       <DesktopCard />
