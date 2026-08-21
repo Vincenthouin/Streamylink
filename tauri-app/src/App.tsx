@@ -65,8 +65,7 @@ export default function App() {
     const onClick = (e: MouseEvent) => {
       const a = (e.target as HTMLElement).closest("a");
       const href = a?.getAttribute("href");
-      // liens web ET schémas d'app de bureau (spotify:, music://, deezer://)
-      if (href && /^(https?|spotify|music|deezer|itmss):/i.test(href)) {
+      if (href && /^https?:/i.test(href)) {
         e.preventDefault();
         invoke("open_external", { url: href });
       }

@@ -7,32 +7,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PlatformLink, ResolveResponse, ResolveResult } from "../shared/types";
 import { BONUS_PLATFORMS, MAIN_PLATFORMS, PLATFORM_NAMES } from "../shared/platforms";
-import { APP_SCHEME_PLATFORMS, appSchemeUrl } from "../shared/appLinks";
 import { CheckIcon, CopyIcon, PLATFORM_COLOR, PLATFORM_LOGO } from "./logos";
 import {
   hasStoredSettings,
-  loadOpenInApp,
   loadSettings,
-  saveOpenInApp,
   saveSettings,
   type EnabledPlatforms,
-  type OpenInApp,
 } from "./settings";
-
-const APP_CAPABLE = new Set<string>(APP_SCHEME_PLATFORMS);
-
-/** URL effective d'un lien selon la préférence web/app de la plateforme. */
-function effectiveUrl(link: PlatformLink, openInApp: OpenInApp): string {
-  if (openInApp[link.platform]) {
-    return appSchemeUrl(link.platform, link.url) ?? link.url;
-  }
-  return link.url;
-}
-
-/** Applique la préférence web/app à une liste de liens. */
-function withEffectiveUrls(links: PlatformLink[], openInApp: OpenInApp): PlatformLink[] {
-  return links.map((l) => ({ ...l, url: effectiveUrl(l, openInApp) }));
-}
 
 const ALL_PLATFORMS = [...MAIN_PLATFORMS, ...BONUS_PLATFORMS];
 
@@ -55,7 +36,6 @@ export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanel
   const [input, setInput] = useState("");
   const [state, setState] = useState<State>({ status: "idle" });
   const [enabled, setEnabled] = useState<EnabledPlatforms>(loadSettings);
-  const [openInApp, setOpenInApp] = useState<OpenInApp>(loadOpenInApp);
   const [showSettings, setShowSettings] = useState(false);
   // onboarding : au premier lancement d'une recherche, l'utilisateur choisit
   // ses plateformes ; on ne persiste qu'à partir de la validation
@@ -67,7 +47,6 @@ export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanel
     if (stored) saveSettings(enabled);
   }, [enabled, stored]);
 
-  useEffect(() => saveOpenInApp(openInApp), [openInApp]);
 
   const doResolve = useCallback(
     async (url: string) => {
@@ -168,17 +147,7 @@ export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanel
       {showSettings ? (
         <div className="flex flex-col gap-1.5">
           <p className="px-1 text-[10px] uppercase tracking-wider text-zinc-500">Music platforms</p>
-          <PlatformToggleList
-            enabled={enabled}
-            setEnabled={setEnabled}
-            openInApp={openInApp}
-            setOpenInApp={setOpenInApp}
-            showAppMode
-          />
-          <p className="px-1 pt-1 text-[10px] leading-relaxed text-zinc-600">
-            « App » : les boutons ci-dessus ouvrent l'app de bureau (si installée). Les liens
-            copiés restent des liens web — les messageries ne rendent cliquables que ceux-là.
-          </p>
+          <PlatformToggleList enabled={enabled} setEnabled={setEnabled} />
         </div>
       ) : onboarding ? (
         <div className="flex flex-col gap-3">
@@ -213,12 +182,7 @@ export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanel
           )}
 
           {state.status === "done" && (
-            <Result
-              result={state.result}
-              enabled={enabled}
-              openInApp={openInApp}
-              copyRich={copyRich}
-            />
+            <Result result={state.result} enabled={enabled} copyRich={copyRich} />
           )}
         </>
       )}
@@ -229,25 +193,19 @@ export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanel
 function PlatformToggleList({
   enabled,
   setEnabled,
-  openInApp,
-  setOpenInApp,
-  showAppMode = false,
 }: {
   enabled: EnabledPlatforms;
   setEnabled: React.Dispatch<React.SetStateAction<EnabledPlatforms>>;
-  openInApp?: OpenInApp;
-  setOpenInApp?: React.Dispatch<React.SetStateAction<OpenInApp>>;
-  showAppMode?: boolean;
 }) {
   const toggle = (p: string) => setEnabled((s) => ({ ...s, [p]: !s[p] }));
-  const toggleApp = (p: string) => setOpenInApp?.((s) => ({ ...s, [p]: !s[p] }));
 
   return (
     <div className="flex flex-col gap-1.5">
       {ALL_PLATFORMS.map((p) => (
-        <div
+        <button
           key={p}
-          className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 transition hover:border-white/20 hover:bg-white/[0.08]"
+          onClick={() => toggle(p)}
+          className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-left transition hover:border-white/20 hover:bg-white/[0.08]"
         >
           <span style={{ color: PLATFORM_COLOR[p] ?? "#a1a1aa" }} className="shrink-0">
             {PLATFORM_LOGO(p, "h-4.5 w-4.5")}
@@ -255,31 +213,7 @@ function PlatformToggleList({
           <span className="flex-1 truncate text-[13px] font-medium text-zinc-200">
             {PLATFORM_NAMES[p]}
           </span>
-
-          {showAppMode && enabled[p] && APP_CAPABLE.has(p) && (
-            <span className="flex shrink-0 overflow-hidden rounded-lg border border-white/10 text-[10px] font-medium">
-              <button
-                onClick={() => openInApp?.[p] && toggleApp(p)}
-                className={`px-2 py-0.5 transition ${
-                  openInApp?.[p] ? "text-zinc-500 hover:text-zinc-300" : "bg-white/15 text-zinc-100"
-                }`}
-              >
-                Web
-              </button>
-              <button
-                onClick={() => !openInApp?.[p] && toggleApp(p)}
-                className={`px-2 py-0.5 transition ${
-                  openInApp?.[p] ? "bg-white/15 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                App
-              </button>
-            </span>
-          )}
-
-          <button
-            onClick={() => toggle(p)}
-            title={enabled[p] ? "Désactiver" : "Activer"}
+          <span
             className={`relative h-5 w-9 shrink-0 rounded-full transition ${
               enabled[p] ? "bg-emerald-500/80" : "bg-white/15"
             }`}
@@ -289,8 +223,8 @@ function PlatformToggleList({
                 enabled[p] ? "left-[18px]" : "left-0.5"
               }`}
             />
-          </button>
-        </div>
+          </span>
+        </button>
       ))}
     </div>
   );
@@ -299,19 +233,14 @@ function PlatformToggleList({
 function Result({
   result,
   enabled,
-  openInApp,
   copyRich,
 }: {
   result: ResolveResult;
   enabled: EnabledPlatforms;
-  openInApp: OpenInApp;
   copyRich?: (html: string, text: string) => Promise<void>;
 }) {
-  // liens web (https, toujours cliquables) et versions "app" (schéma de bureau)
-  const webLinks = result.links.filter((l) => enabled[l.platform]);
-  const webBonus = result.bonus.filter((l) => enabled[l.platform]);
-  const links = withEffectiveUrls(webLinks, openInApp); // boutons : respectent le réglage
-  const bonus = withEffectiveUrls(webBonus, openInApp);
+  const links = result.links.filter((l) => enabled[l.platform]);
+  const bonus = result.bonus.filter((l) => enabled[l.platform]);
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-2.5">
@@ -356,12 +285,7 @@ function Result({
           No platform enabled — open settings (gear icon).
         </p>
       ) : (
-        <CopyAllButton
-          result={result}
-          links={webLinks}
-          bonus={webBonus}
-          copyRich={copyRich}
-        />
+        <CopyAllButton result={result} links={links} bonus={bonus} copyRich={copyRich} />
       )}
     </div>
   );
