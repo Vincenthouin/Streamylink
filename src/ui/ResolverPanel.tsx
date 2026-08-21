@@ -176,7 +176,8 @@ export function ResolverPanel({ resolveLink, inputRef, copyRich }: ResolverPanel
             showAppMode
           />
           <p className="px-1 pt-1 text-[10px] leading-relaxed text-zinc-600">
-            « App » ouvre le lien dans l'app de bureau (si installée) plutôt que le navigateur.
+            « App » : les boutons ouvrent l'app de bureau (si installée). Les liens copiés
+            en texte restent des liens web cliquables.
           </p>
         </div>
       ) : onboarding ? (
@@ -306,8 +307,11 @@ function Result({
   openInApp: OpenInApp;
   copyRich?: (html: string, text: string) => Promise<void>;
 }) {
-  const links = withEffectiveUrls(result.links.filter((l) => enabled[l.platform]), openInApp);
-  const bonus = withEffectiveUrls(result.bonus.filter((l) => enabled[l.platform]), openInApp);
+  // liens web (https, toujours cliquables) et versions "app" (schéma de bureau)
+  const webLinks = result.links.filter((l) => enabled[l.platform]);
+  const webBonus = result.bonus.filter((l) => enabled[l.platform]);
+  const links = withEffectiveUrls(webLinks, openInApp); // boutons : respectent le réglage
+  const bonus = withEffectiveUrls(webBonus, openInApp);
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-2.5">
@@ -352,7 +356,14 @@ function Result({
           No platform enabled — open settings (gear icon).
         </p>
       ) : (
-        <CopyAllButton result={result} links={links} bonus={bonus} copyRich={copyRich} />
+        <CopyAllButton
+          result={result}
+          webLinks={webLinks}
+          webBonus={webBonus}
+          appLinks={links}
+          appBonus={bonus}
+          copyRich={copyRich}
+        />
       )}
     </div>
   );
@@ -490,13 +501,19 @@ async function copyRichOrPlain(
 
 function CopyAllButton({
   result,
-  links,
-  bonus,
+  webLinks,
+  webBonus,
+  appLinks,
+  appBonus,
   copyRich,
 }: {
   result: ResolveResult;
-  links: PlatformLink[];
-  bonus: PlatformLink[];
+  // texte brut : liens web https (cliquables partout, même en texte simple)
+  webLinks: PlatformLink[];
+  webBonus: PlatformLink[];
+  // HTML : liens "app" (nom cliquable → ouvre l'app de bureau en contexte riche)
+  appLinks: PlatformLink[];
+  appBonus: PlatformLink[];
   copyRich?: (html: string, text: string) => Promise<void>;
 }) {
   const [copied, setCopied] = useState(false);
@@ -504,8 +521,8 @@ function CopyAllButton({
 
   const onClick = async () => {
     await copyRichOrPlain(
-      formatShareHtml(result, links, bonus),
-      formatShareText(result, links, bonus),
+      formatShareHtml(result, appLinks, appBonus),
+      formatShareText(result, webLinks, webBonus),
       copyRich,
     );
     setCopied(true);
