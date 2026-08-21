@@ -16,6 +16,15 @@ if [ ! -d "$APP" ]; then
   exit 1
 fi
 
+# Re-signature ad-hoc du bundle COMPLET : Tauri signe le binaire puis ajoute
+# l'icône .icns, ce qui invalide la signature (→ « app endommagée » sur les
+# Mac Apple Silicon, qui exigent une signature valide). On re-signe l'ensemble.
+codesign --force --deep --sign - "$APP"
+codesign --verify --deep --strict "$APP" || {
+  echo "✗ signature invalide après re-signature" >&2
+  exit 1
+}
+
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 mkdir -p "$ROOT/release"
