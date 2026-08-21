@@ -27,9 +27,12 @@ mkdir -p "$OUT"
 bash "$ROOT/scripts/make-dmg.sh"
 
 # 2. archive d'auto-update depuis l'app re-signée
+# COPYFILE_DISABLE=1 : empêche le tar de macOS d'ajouter les fichiers
+# AppleDouble « ._* » (attributs étendus), sur lesquels l'updater Tauri
+# échouait (« failed to unpack ._Music Share.app »).
 TAR="$OUT/Music-Share-mac.app.tar.gz"
 rm -f "$TAR" "$TAR.sig"
-tar -C "$(dirname "$APP")" -czf "$TAR" "Music Share.app"
+COPYFILE_DISABLE=1 tar --no-xattrs -C "$(dirname "$APP")" -czf "$TAR" "Music Share.app"
 
 # 3. signature updater (minisign)
 export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
