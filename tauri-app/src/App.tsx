@@ -88,18 +88,46 @@ type UpdateState =
   | { status: "downloading"; pct: number }
   | { status: "error"; detail?: string };
 
+const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 h
+const FOCUS_THROTTLE_MS = 30 * 60 * 1000; // au plus 1 check / 30 min à l'ouverture
+
 function UpdateBanner() {
   const [state, setState] = useState<UpdateState>({ status: "none" });
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
-  // vérifie une seule fois au démarrage
   useEffect(() => {
-    check()
-      .then((update) => {
-        if (update) setState({ status: "available", update });
-      })
-      .catch(() => {
+    let cancelled = false;
+    let lastCheck = 0;
+
+    const runCheck = async () => {
+      // ne pas déranger si une update est déjà proposée, en cours ou en échec
+      if (stateRef.current.status !== "none") return;
+      lastCheck = Date.now();
+      try {
+        const update = await check();
+        if (!cancelled && update && stateRef.current.status === "none") {
+          setState({ status: "available", update });
+        }
+      } catch {
         /* hors ligne / pas de manifeste : on ignore silencieusement */
-      });
+      }
+    };
+
+    runCheck(); // au démarrage
+    const id = setInterval(runCheck, CHECK_INTERVAL_MS); // périodique
+
+    // re-vérifie quand l'utilisateur ouvre la fenêtre (app de barre de menus
+    // rarement quittée), throttlé pour ne pas interroger GitHub trop souvent
+    const un = getCurrentWindow().onFocusChanged(({ payload: focused }) => {
+      if (focused && Date.now() - lastCheck > FOCUS_THROTTLE_MS) runCheck();
+    });
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      un.then((f) => f());
+    };
   }, []);
 
   if (state.status === "none") return null;
