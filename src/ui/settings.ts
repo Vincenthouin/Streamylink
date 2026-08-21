@@ -32,3 +32,23 @@ export function loadSettings(): EnabledPlatforms {
 export function saveSettings(s: EnabledPlatforms): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
 }
+
+// ─── Ouvrir dans l'app de bureau (par plateforme) ────────────────────
+
+export type OpenInApp = Record<string, boolean>;
+
+const OPEN_IN_APP_KEY = "musicshare.openInApp";
+
+/** Par défaut : tout en web (universel). L'utilisateur active « app » au cas par cas. */
+export function loadOpenInApp(): OpenInApp {
+  try {
+    const raw = localStorage.getItem(OPEN_IN_APP_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveOpenInApp(s: OpenInApp): void {
+  localStorage.setItem(OPEN_IN_APP_KEY, JSON.stringify(s));
+}

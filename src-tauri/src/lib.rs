@@ -14,6 +14,23 @@ fn copy_rich(html: String, text: String) -> Result<(), String> {
     cb.set_html(html, Some(text)).map_err(|e| e.to_string())
 }
 
+/// Ouvre une URL via `open` de macOS : navigateur pour http(s), app de
+/// bureau pour les schémas de plateforme. Liste blanche de schémas pour
+/// éviter d'ouvrir n'importe quoi (file://, etc.).
+#[tauri::command]
+fn open_external(url: String) -> Result<(), String> {
+    const ALLOWED: &[&str] = &["https:", "http:", "spotify:", "music:", "deezer:", "itmss:"];
+    let ok = ALLOWED.iter().any(|s| url.starts_with(s));
+    if !ok {
+        return Err("scheme not allowed".into());
+    }
+    std::process::Command::new("open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Affiche la fenêtre centrée sous l'icône de la barre de menus.
 fn show_under_tray(app: &tauri::AppHandle, tray_rect: tauri::Rect) {
     if let Some(win) = app.get_webview_window("main") {
@@ -104,7 +121,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![copy_rich])
+        .invoke_handler(tauri::generate_handler![copy_rich, open_external])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

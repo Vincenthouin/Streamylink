@@ -7,7 +7,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { ResolverPanel } from "../../src/ui/ResolverPanel";
@@ -66,9 +65,10 @@ export default function App() {
     const onClick = (e: MouseEvent) => {
       const a = (e.target as HTMLElement).closest("a");
       const href = a?.getAttribute("href");
-      if (href && /^https?:/.test(href)) {
+      // liens web ET schémas d'app de bureau (spotify:, music://, deezer://)
+      if (href && /^(https?|spotify|music|deezer|itmss):/i.test(href)) {
         e.preventDefault();
-        openUrl(href);
+        invoke("open_external", { url: href });
       }
     };
     document.addEventListener("click", onClick);
