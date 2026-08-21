@@ -87,7 +87,7 @@ type UpdateState =
   | { status: "none" }
   | { status: "available"; update: Update }
   | { status: "downloading"; pct: number }
-  | { status: "error"; message: string };
+  | { status: "error"; detail?: string };
 
 function UpdateBanner() {
   const [state, setState] = useState<UpdateState>({ status: "none" });
@@ -119,7 +119,7 @@ function UpdateBanner() {
       });
       await relaunch();
     } catch (err) {
-      setState({ status: "error", message: String(err) });
+      setState({ status: "error", detail: String(err) });
     }
   };
 
@@ -157,8 +157,21 @@ function UpdateBanner() {
         </div>
       )}
       {state.status === "error" && (
-        <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2 text-[12px] text-red-300">
-          Update failed — try again later.
+        <div className="flex flex-col gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2.5">
+          <span className="text-[12px] text-red-300">
+            Auto-update failed. Download the latest version directly:
+          </span>
+          <a
+            href="https://github.com/Vincenthouin/Streamylink/releases/latest/download/Music-Share-mac.dmg"
+            className="rounded-lg bg-white/10 px-2.5 py-1 text-center text-[11px] font-medium text-zinc-100 transition hover:bg-white/15"
+          >
+            Download the .dmg
+          </a>
+          {state.detail && (
+            <span className="truncate text-[10px] text-red-400/60" title={state.detail}>
+              {state.detail}
+            </span>
+          )}
         </div>
       )}
     </div>

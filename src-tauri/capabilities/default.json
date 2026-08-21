@@ -20,8 +20,11 @@
       "allow": [
         { "url": "https://*.qobuz.com/" },
         { "url": "https://qobuz.com/" },
+        { "url": "https://*.spotify.com/" },
+        { "url": "https://spotify.com/" },
         { "url": "https://*.deezer.com/" },
         { "url": "https://deezer.com/" },
+        { "url": "https://*.page.link/" },
         { "url": "https://itunes.apple.com/" },
         { "url": "https://*.song.link/" },
         { "url": "https://song.link/" }
