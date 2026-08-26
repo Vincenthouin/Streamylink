@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Music Share",
-  "version": "2.2.14",
+  "version": "2.2.15",
   "identifier": "com.uxteam.musicshare",
   "build": {
     "frontendDist": "../dist-tauri",
@@ -11,7 +11,20 @@
   },
   "app": {
     "macOSPrivateApi": true,
-    "windows": [],
+    "windows": [
+      {
+        "label": "main",
+        "title": "Music Share",
+        "width": 440,
+        "height": 480,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false
+      }
+    ],
     "security": {
       "csp": null
     }
