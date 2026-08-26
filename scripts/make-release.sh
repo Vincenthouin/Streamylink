@@ -39,20 +39,26 @@ export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
 (cd "$ROOT" && npx tauri signer sign -f "$KEY" "$TAR" >/dev/null)
 SIG="$(cat "$TAR.sig")"
 
-# 4. manifeste latest.json
-cat > "$OUT/latest.json" <<EOF
-{
-  "version": "$VERSION",
-  "notes": "Voir les notes de version sur GitHub.",
-  "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "platforms": {
-    "darwin-aarch64": {
-      "signature": "$SIG",
-      "url": "https://github.com/$REPO/releases/download/v$VERSION/Music-Share-mac.app.tar.gz"
-    }
-  }
+# 4. manifeste latest.json — les notes (affichées dans le bandeau d'update
+#    avant l'installation) viennent de la variable UPDATE_NOTES. Python pour
+#    un JSON correctement échappé (retours à la ligne, accents…).
+NOTES="${UPDATE_NOTES:-Améliorations et corrections.}"
+python3 - "$VERSION" "$SIG" "$NOTES" "$REPO" > "$OUT/latest.json" <<'PY'
+import json, sys, datetime
+version, sig, notes, repo = sys.argv[1:5]
+manifest = {
+    "version": version,
+    "notes": notes,
+    "pub_date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "platforms": {
+        "darwin-aarch64": {
+            "signature": sig,
+            "url": f"https://github.com/{repo}/releases/download/v{version}/Music-Share-mac.app.tar.gz",
+        }
+    },
 }
-EOF
+print(json.dumps(manifest, indent=2, ensure_ascii=False))
+PY
 
 echo "✓ Artefacts de release v$VERSION dans release/ :"
 ls -lh "$OUT/Music-Share-mac.dmg" "$TAR" "$OUT/latest.json" | awk '{print "   "$5, $NF}'

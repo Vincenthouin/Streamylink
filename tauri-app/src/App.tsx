@@ -166,18 +166,18 @@ function UpdateBanner() {
       {state.status === "available" && (
         <button
           onClick={() => install(state.update)}
-          className="flex w-full items-center justify-between gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-left transition hover:bg-emerald-500/15"
+          className="flex w-full flex-col gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-left transition hover:bg-emerald-500/15"
         >
-          <span className="min-w-0">
-            <span className="block text-[12px] font-semibold text-emerald-300">
+          <span className="flex items-center justify-between gap-2">
+            <span className="text-[12px] font-semibold text-emerald-300">
               New version {state.update.version} available
             </span>
-            <span className="block truncate text-[11px] text-emerald-400/70">
-              Click to update and restart
+            <span className="shrink-0 rounded-lg bg-emerald-500/20 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+              Update
             </span>
           </span>
-          <span className="shrink-0 rounded-lg bg-emerald-500/20 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
-            Update
+          <span className="block whitespace-pre-line text-[11px] leading-relaxed text-emerald-400/80">
+            {state.update.body?.trim() || "Click to update and restart."}
           </span>
         </button>
       )}
