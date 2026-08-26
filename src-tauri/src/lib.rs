@@ -139,9 +139,17 @@ fn toggle_from_shortcut(app: &tauri::AppHandle) {
     });
 }
 
+fn ctrl_cmd_m() -> Shortcut {
+    Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SUPER), Code::KeyM)
+}
+fn ctrl_alt_cmd_m() -> Shortcut {
+    Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT | Modifiers::SUPER), Code::KeyM)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let hotkey = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SUPER), Code::KeyM);
+    let hk_a = ctrl_cmd_m();
+    let hk_b = ctrl_alt_cmd_m();
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_http::init())
@@ -154,8 +162,15 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, sc, event| {
                     if event.state() == ShortcutState::Pressed {
-                        log::info!("shortcut pressed: {sc:?} (match ⌃⌘M = {})", sc == &hotkey);
-                        if sc == &hotkey {
+                        let which = if sc == &hk_a {
+                            "⌃⌘M"
+                        } else if sc == &hk_b {
+                            "⌃⌥⌘M"
+                        } else {
+                            "?"
+                        };
+                        log::info!("shortcut pressed: {which}");
+                        if sc == &hk_a || sc == &hk_b {
                             toggle_from_shortcut(app);
                         }
                     }
@@ -170,14 +185,12 @@ pub fn run() {
             // fenêtre créée en Rust (pour pouvoir la recréer si elle est détruite)
             build_main_window(&app.handle())?;
 
-            // raccourci global ⌃⌘M pour ouvrir/masquer l'app (non bloquant :
-            // si le combo est déjà pris ailleurs, l'app démarre quand même)
-            match app
-                .global_shortcut()
-                .register(Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SUPER), Code::KeyM))
-            {
-                Ok(_) => log::info!("global shortcut ⌃⌘M registered OK"),
-                Err(e) => log::error!("global shortcut ⌃⌘M register FAILED: {e}"),
+            // deux raccourcis globaux (diagnostic) : ⌃⌘M et ⌃⌥⌘M
+            for (name, hk) in [("⌃⌘M", ctrl_cmd_m()), ("⌃⌥⌘M", ctrl_alt_cmd_m())] {
+                match app.global_shortcut().register(hk) {
+                    Ok(_) => log::info!("global shortcut {name} registered OK"),
+                    Err(e) => log::error!("global shortcut {name} register FAILED: {e}"),
+                }
             }
 
             // icône template (noir + alpha), adaptée aux barres claires/sombres
