@@ -155,6 +155,20 @@ export function qobuzOgUrl(url: string): string | null {
   return m ? `https://www.qobuz.com/opengraph/${m[1]}/${m[2]}` : null;
 }
 
+/**
+ * Si le HTML d'une page opengraph Qobuz est un album à UNE seule piste
+ * (un single), renvoie l'URL open.qobuz.com de cette piste, sinon null.
+ * Une page d'album n'a pas de music:isrc — mais celle de la piste, si. On
+ * suit donc ce lien pour un single afin d'obtenir l'ISRC (indispensable
+ * quand la recherche texte Deezer ne trouve pas une sortie récente).
+ */
+export function qobuzSingleTrackUrl(html: string): string | null {
+  const songs = html.match(/property=["']music:song["']/gi) ?? [];
+  if (songs.length !== 1) return null; // pas un single : on ne devine pas la piste
+  const url = extractMeta(html, "music:song");
+  return url && /open\.qobuz\.com\/track\/\d+/i.test(url) ? url : null;
+}
+
 /** Extrait les métadonnées du HTML d'une page opengraph Qobuz. */
 export function parseQobuzOgHtml(html: string): TrackInfo {
   const ogTitle = extractMeta(html, "og:title"); // "Imagine by John Lennon is on Qobuz.com"
@@ -182,8 +196,13 @@ export function parseQobuzOgHtml(html: string): TrackInfo {
 
 async function getQobuzTrackInfo(url: string): Promise<TrackInfo> {
   // endpoint opengraph en direct (UA navigateur accepté), UA de bots en secours
+  const uas = [BROWSER_UA, ...UA_CHAIN];
   const target = qobuzOgUrl(url);
-  const html = await fetchAsBot(target ?? url, target ? [BROWSER_UA, ...UA_CHAIN] : UA_CHAIN);
+  let html = await fetchAsBot(target ?? url, target ? uas : UA_CHAIN);
+  // single (album 1 piste) : suivre la piste pour récupérer son ISRC
+  const trackUrl = qobuzSingleTrackUrl(html);
+  const trackOg = trackUrl && qobuzOgUrl(trackUrl);
+  if (trackOg) html = await fetchAsBot(trackOg, uas);
   return parseQobuzOgHtml(html);
 }
 

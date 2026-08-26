@@ -4,7 +4,7 @@
  * navigateur à cause du CORS des plateformes).
  */
 import { ResolverPanel } from "../../src/ui/ResolverPanel";
-import { qobuzOgUrl } from "../../src/core/resolver";
+import { qobuzOgUrl, qobuzSingleTrackUrl } from "../../src/core/resolver";
 import type { ResolveResponse } from "../../src/shared/types";
 
 declare const __APP_VERSION__: string;
@@ -16,8 +16,18 @@ async function fetchQobuzOgHtml(url: string): Promise<string | undefined> {
   const og = qobuzOgUrl(url.trim());
   if (!og) return undefined;
   try {
-    const res = await fetch(og);
-    return res.ok ? await res.text() : undefined;
+    let res = await fetch(og);
+    if (!res.ok) return undefined;
+    let html = await res.text();
+    // single Qobuz (album 1 piste) : suivre la piste pour son ISRC — c'est le
+    // navigateur qui fetch (Qobuz bloque l'IP du serveur)
+    const trackUrl = qobuzSingleTrackUrl(html);
+    const trackOg = trackUrl && qobuzOgUrl(trackUrl);
+    if (trackOg) {
+      res = await fetch(trackOg);
+      if (res.ok) html = await res.text();
+    }
+    return html;
   } catch {
     return undefined; // le serveur retentera de son côté
   }
