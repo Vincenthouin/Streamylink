@@ -1,11 +1,17 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tauri::{
     image::Image,
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    ActivationPolicy, Manager, PhysicalPosition,
+    ActivationPolicy, Manager, PhysicalPosition, RunEvent, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+
+/// Vrai seulement quand l'utilisateur a demandé « Quit » : sinon on empêche
+/// l'app de se terminer (utilitaire de barre de menus qui doit rester vivant
+/// même si sa fenêtre est fermée/détruite).
+static QUITTING: AtomicBool = AtomicBool::new(false);
 
 /// Dernière position connue de l'icône de la barre de menus, pour pouvoir
 /// afficher la fenêtre au bon endroit quand elle est ouverte au clavier.
@@ -37,9 +43,51 @@ fn open_external(url: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Masque la fenêtre au clic extérieur / à la demande de fermeture, au lieu
+/// de la détruire — l'app reste vivante en barre de menus.
+fn attach_window_events(win: &tauri::WebviewWindow) {
+    let w = win.clone();
+    win.on_window_event(move |event| match event {
+        WindowEvent::Focused(false) => {
+            let _ = w.hide();
+        }
+        WindowEvent::CloseRequested { api, .. } => {
+            api.prevent_close();
+            let _ = w.hide();
+        }
+        _ => {}
+    });
+}
+
+/// (Re)crée la fenêtre principale (frameless, transparente, masquée).
+fn build_main_window(app: &tauri::AppHandle) -> tauri::Result<tauri::WebviewWindow> {
+    let win = tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::default())
+        .title("Music Share")
+        .inner_size(440.0, 480.0)
+        .resizable(false)
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .visible(false)
+        .build()?;
+    attach_window_events(&win);
+    Ok(win)
+}
+
+/// Récupère la fenêtre, ou la recrée si elle a été détruite.
+fn ensure_window(app: &tauri::AppHandle) -> Option<tauri::WebviewWindow> {
+    if let Some(win) = app.get_webview_window("main") {
+        return Some(win);
+    }
+    log::warn!("fenêtre absente — recréation");
+    build_main_window(app)
+        .map_err(|e| log::error!("recréation fenêtre échouée: {e}"))
+        .ok()
+}
+
 /// Affiche la fenêtre centrée sous l'icône de la barre de menus.
 fn show_under_tray(app: &tauri::AppHandle, tray_rect: tauri::Rect) {
-    if let Some(win) = app.get_webview_window("main") {
+    if let Some(win) = ensure_window(app) {
         let scale = win.scale_factor().unwrap_or(1.0);
         let pos = tray_rect.position.to_physical::<f64>(scale);
         let size = tray_rect.size.to_physical::<f64>(scale);
@@ -53,12 +101,14 @@ fn show_under_tray(app: &tauri::AppHandle, tray_rect: tauri::Rect) {
 }
 
 fn toggle_window(app: &tauri::AppHandle, tray_rect: tauri::Rect) {
-    if let Some(win) = app.get_webview_window("main") {
-        if win.is_visible().unwrap_or(false) {
-            let _ = win.hide();
-        } else {
-            show_under_tray(app, tray_rect);
-        }
+    let visible = app
+        .get_webview_window("main")
+        .and_then(|w| w.is_visible().ok())
+        .unwrap_or(false);
+    if visible {
+        let _ = app.get_webview_window("main").map(|w| w.hide());
+    } else {
+        show_under_tray(app, tray_rect);
     }
 }
 
@@ -75,7 +125,7 @@ fn toggle_from_shortcut(app: &tauri::AppHandle) {
     match rect {
         Some(rect) => show_under_tray(app, rect),
         None => {
-            if let Some(win) = app.get_webview_window("main") {
+            if let Some(win) = ensure_window(app) {
                 let _ = win.center();
                 let _ = win.show();
                 let _ = win.set_focus();
@@ -88,11 +138,13 @@ fn toggle_from_shortcut(app: &tauri::AppHandle) {
 pub fn run() {
     let hotkey = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SUPER), Code::KeyM);
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        // log fichier (release incluse) : ~/Library/Logs/com.uxteam.musicshare/Music Share.log
+        .plugin(tauri_plugin_log::Builder::default().level(log::LevelFilter::Info).build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, sc, event| {
@@ -104,16 +156,11 @@ pub fn run() {
         )
         .manage(TrayRect(Mutex::new(None)))
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-
             // utilitaire de barre de menus : pas d'icône dans le Dock
             app.set_activation_policy(ActivationPolicy::Accessory);
+
+            // fenêtre créée en Rust (pour pouvoir la recréer si elle est détruite)
+            build_main_window(&app.handle())?;
 
             // raccourci global ⌃⌘M pour ouvrir/masquer l'app (non bloquant :
             // si le combo est déjà pris ailleurs, l'app démarre quand même)
@@ -141,6 +188,7 @@ pub fn run() {
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {
                     if event.id() == "quit" {
+                        QUITTING.store(true, Ordering::SeqCst);
                         app.exit(0);
                     }
                 })
@@ -159,19 +207,19 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // masquer la fenêtre quand elle perd le focus (clic extérieur)
-            if let Some(win) = app.get_webview_window("main") {
-                let w = win.clone();
-                win.on_window_event(move |event| {
-                    if let tauri::WindowEvent::Focused(false) = event {
-                        let _ = w.hide();
-                    }
-                });
-            }
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![copy_rich, open_external])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|_app, event| {
+        // empêche l'app de se terminer quand sa fenêtre disparaît (sauf « Quit »)
+        if let RunEvent::ExitRequested { api, .. } = event {
+            if !QUITTING.load(Ordering::SeqCst) {
+                log::warn!("ExitRequested intercepté — l'app reste en barre de menus");
+                api.prevent_exit();
+            }
+        }
+    });
 }
