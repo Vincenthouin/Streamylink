@@ -179,8 +179,10 @@ pub fn run() {
         )
         .manage(TrayRect(Mutex::new(None)))
         .setup(|app| {
-            // utilitaire de barre de menus : pas d'icône dans le Dock
-            app.set_activation_policy(ActivationPolicy::Accessory);
+            // TEST : activation « normale » (icône Dock) pour voir si les
+            // raccourcis globaux Carbon sont alors livrés à l'app.
+            // app.set_activation_policy(ActivationPolicy::Accessory);
+            let _ = ActivationPolicy::Accessory; // évite le warning d'import inutilisé
 
             // fenêtre créée en Rust (pour pouvoir la recréer si elle est détruite)
             build_main_window(&app.handle())?;
