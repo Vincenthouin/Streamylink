@@ -49,15 +49,20 @@ export default function App() {
     return () => ro.disconnect();
   }, []);
 
-  // Échap pour masquer, focus de l'input à l'affichage
+  // Échap pour masquer, focus + sélection de l'input à l'affichage (pour
+  // remplacer directement le texte présent)
   useEffect(() => {
     const win = getCurrentWindow();
-    inputRef.current?.focus();
+    const focusInput = () => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    };
+    focusInput();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") win.hide();
     };
     const un = win.onFocusChanged(({ payload: focused }) => {
-      if (focused) inputRef.current?.focus();
+      if (focused) focusInput();
     });
     window.addEventListener("keydown", onKey);
     return () => {
