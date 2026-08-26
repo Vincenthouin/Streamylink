@@ -100,7 +100,9 @@ type UpdateState =
   | { status: "error"; detail?: string };
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 h
-const FOCUS_THROTTLE_MS = 30 * 60 * 1000; // au plus 1 check / 30 min à l'ouverture
+// à l'ouverture de la fenêtre : re-check quasi systématique (le manifeste ne
+// pèse que ~700 o), throttle minimal juste pour éviter les doubles déclenchements
+const FOCUS_THROTTLE_MS = 60 * 1000; // 1 min
 
 function UpdateBanner() {
   const [state, setState] = useState<UpdateState>({ status: "none" });
