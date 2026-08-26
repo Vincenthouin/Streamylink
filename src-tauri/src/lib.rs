@@ -113,25 +113,30 @@ fn toggle_window(app: &tauri::AppHandle, tray_rect: tauri::Rect) {
 }
 
 /// Bascule la fenêtre depuis le raccourci clavier : sous l'icône du tray si
-/// on connaît sa position, sinon centrée.
+/// on connaît sa position, sinon centrée. Les opérations de fenêtre sont
+/// forcées sur le thread principal (obligatoire sur macOS).
 fn toggle_from_shortcut(app: &tauri::AppHandle) {
-    if let Some(win) = app.get_webview_window("main") {
-        if win.is_visible().unwrap_or(false) {
-            let _ = win.hide();
-            return;
-        }
-    }
-    let rect = app.state::<TrayRect>().0.lock().unwrap().clone();
-    match rect {
-        Some(rect) => show_under_tray(app, rect),
-        None => {
-            if let Some(win) = ensure_window(app) {
-                let _ = win.center();
-                let _ = win.show();
-                let _ = win.set_focus();
+    let app = app.clone();
+    let _ = app.clone().run_on_main_thread(move || {
+        log::info!("toggle_from_shortcut (main thread)");
+        if let Some(win) = app.get_webview_window("main") {
+            if win.is_visible().unwrap_or(false) {
+                let _ = win.hide();
+                return;
             }
         }
-    }
+        let rect = app.state::<TrayRect>().0.lock().unwrap().clone();
+        match rect {
+            Some(rect) => show_under_tray(&app, rect),
+            None => {
+                if let Some(win) = ensure_window(&app) {
+                    let _ = win.center();
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
+            }
+        }
+    });
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -148,8 +153,11 @@ pub fn run() {
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, sc, event| {
-                    if event.state() == ShortcutState::Pressed && sc == &hotkey {
-                        toggle_from_shortcut(app);
+                    if event.state() == ShortcutState::Pressed {
+                        log::info!("shortcut pressed: {sc:?} (match ⌃⌘M = {})", sc == &hotkey);
+                        if sc == &hotkey {
+                            toggle_from_shortcut(app);
+                        }
                     }
                 })
                 .build(),
@@ -164,11 +172,12 @@ pub fn run() {
 
             // raccourci global ⌃⌘M pour ouvrir/masquer l'app (non bloquant :
             // si le combo est déjà pris ailleurs, l'app démarre quand même)
-            if let Err(e) = app
+            match app
                 .global_shortcut()
                 .register(Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SUPER), Code::KeyM))
             {
-                eprintln!("global shortcut ⌃⌘M register failed: {e}");
+                Ok(_) => log::info!("global shortcut ⌃⌘M registered OK"),
+                Err(e) => log::error!("global shortcut ⌃⌘M register FAILED: {e}"),
             }
 
             // icône template (noir + alpha), adaptée aux barres claires/sombres
