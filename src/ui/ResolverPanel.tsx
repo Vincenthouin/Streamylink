@@ -109,6 +109,22 @@ export function ResolverPanel({
     e.preventDefault();
   };
 
+  // bouton « Coller » : lit le presse-papier (sur iOS, affiche la confirmation
+  // native). On ne peut PAS savoir à l'avance s'il contient quelque chose.
+  const canPaste = typeof navigator !== "undefined" && !!navigator.clipboard?.readText;
+  const pasteFromClipboard = async () => {
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      if (text) {
+        setInput(text);
+        setShowSettings(false);
+        resolve(text);
+      }
+    } catch {
+      /* refusé ou vide : on ne fait rien */
+    }
+  };
+
   const onboarding = pendingUrl !== null;
 
   return (
@@ -125,9 +141,11 @@ export function ResolverPanel({
             onChange={(e) => setInput(e.target.value)}
             onPaste={onPaste}
             onKeyDown={(e) => e.key === "Enter" && resolve(input)}
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-3.5 pr-8 text-[13px] text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-white/25 focus:bg-white/[0.07]"
+            className={`w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-3.5 text-[13px] text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-white/25 focus:bg-white/[0.07] ${
+              !input && canPaste ? "pr-[68px]" : "pr-8"
+            }`}
           />
-          {input && (
+          {input ? (
             <button
               onClick={() => {
                 setInput("");
@@ -141,7 +159,19 @@ export function ResolverPanel({
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
             </button>
-          )}
+          ) : canPaste ? (
+            <button
+              onClick={pasteFromClipboard}
+              className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg border border-white/10 bg-white/10 px-2 py-1 text-[11px] font-medium text-zinc-300 transition hover:bg-white/15 hover:text-zinc-100"
+              title="Paste from clipboard"
+            >
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              Paste
+            </button>
+          ) : null}
         </div>
         <button
           onClick={() => setShowSettings((v) => !v)}
