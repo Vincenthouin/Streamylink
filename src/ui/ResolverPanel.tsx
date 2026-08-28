@@ -111,7 +111,11 @@ export function ResolverPanel({
 
   // bouton « Coller » : lit le presse-papier (sur iOS, affiche la confirmation
   // native). On ne peut PAS savoir à l'avance s'il contient quelque chose.
-  const canPaste = typeof navigator !== "undefined" && !!navigator.clipboard?.readText;
+  // Restreint au mobile (appareils tactiles) : sur desktop on utilise ⌘V.
+  const canPaste =
+    typeof navigator !== "undefined" &&
+    !!navigator.clipboard?.readText &&
+    navigator.maxTouchPoints > 0;
   const pasteFromClipboard = async () => {
     try {
       const text = (await navigator.clipboard.readText()).trim();
@@ -276,23 +280,29 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
   return (
     <div
       aria-hidden
-      className={`rotating-ph pointer-events-none absolute left-3.5 top-1/2 h-[1.4em] -translate-y-1/2 overflow-hidden text-[13px] text-zinc-500 ${
+      className={`rotating-ph pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 items-center overflow-hidden whitespace-nowrap text-[13px] text-zinc-500 ${
         rightGap ? "right-[68px]" : "right-8"
       }`}
     >
-      <div
-        style={{
-          transform: `translateY(-${i * 1.4}em)`,
-          transition: animate ? "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)" : "none",
-        }}
-        onTransitionEnd={onTransitionEnd}
-      >
-        {items.map((p, idx) => (
-          <div key={idx} className="h-[1.4em] truncate leading-[1.4em]">
-            Paste your {p} link
-          </div>
-        ))}
-      </div>
+      Paste your&nbsp;
+      {/* seul le nom de plateforme défile ; « Paste your » et « link » restent fixes */}
+      <span className="inline-block h-[1.4em] overflow-hidden align-middle">
+        <span
+          className="block"
+          style={{
+            transform: `translateY(-${i * 1.4}em)`,
+            transition: animate ? "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)" : "none",
+          }}
+          onTransitionEnd={onTransitionEnd}
+        >
+          {items.map((p, idx) => (
+            <span key={idx} className="block h-[1.4em] leading-[1.4em]">
+              {p}
+            </span>
+          ))}
+        </span>
+      </span>
+      &nbsp;link
     </div>
   );
 }
