@@ -3,11 +3,26 @@
  * l'API serveur /api/resolve (la résolution ne peut pas se faire dans le
  * navigateur à cause du CORS des plateformes).
  */
+import { useMemo } from "react";
 import { ResolverPanel } from "../../src/ui/ResolverPanel";
 import { qobuzOgUrl, qobuzSingleTrackUrl } from "../../src/core/resolver";
 import type { ResolveResponse } from "../../src/shared/types";
 
 declare const __APP_VERSION__: string;
+
+/** Lien reçu via la cible de partage PWA (?url=/?text=/?title=) : on en extrait
+ *  le premier lien http, et on nettoie l'URL pour ne pas le rejouer au refresh. */
+function consumeSharedLink(): string | undefined {
+  if (typeof location === "undefined") return undefined;
+  const p = new URLSearchParams(location.search);
+  const link = [p.get("url"), p.get("text"), p.get("title")]
+    .map((v) => v?.match(/https?:\/\/[^\s]+/)?.[0])
+    .find(Boolean);
+  if (p.has("url") || p.has("text") || p.has("title")) {
+    history.replaceState(null, "", location.pathname);
+  }
+  return link ?? undefined;
+}
 
 /** Le CDN de Qobuz refuse les requêtes des IP de datacenter : le navigateur
  *  (IP résidentielle) fetch lui-même la page opengraph — servie avec CORS
@@ -89,6 +104,7 @@ function isMacDesktop(): boolean {
 }
 
 export default function App() {
+  const sharedUrl = useMemo(consumeSharedLink, []);
   return (
     <div className="flex min-h-screen flex-col items-center px-4 pt-[10vh] pb-8">
       <header className="mb-5 flex flex-col items-center gap-1.5">
@@ -102,7 +118,11 @@ export default function App() {
       </header>
 
       <main className="w-full max-w-md">
-        <ResolverPanel resolveLink={resolveViaApi} version={__APP_VERSION__} />
+        <ResolverPanel
+          resolveLink={resolveViaApi}
+          version={__APP_VERSION__}
+          initialUrl={sharedUrl}
+        />
       </main>
 
       {isMacDesktop() && <DesktopCard />}

@@ -32,9 +32,17 @@ export interface ResolverPanelProps {
   copyRich?: (html: string, text: string) => Promise<void>;
   /** version de l'app, affichée en bas des paramètres */
   version?: string;
+  /** lien reçu via la cible de partage (web) : résolu automatiquement au chargement */
+  initialUrl?: string;
 }
 
-export function ResolverPanel({ resolveLink, inputRef, copyRich, version }: ResolverPanelProps) {
+export function ResolverPanel({
+  resolveLink,
+  inputRef,
+  copyRich,
+  version,
+  initialUrl,
+}: ResolverPanelProps) {
   const [input, setInput] = useState("");
   const [state, setState] = useState<State>({ status: "idle" });
   const [enabled, setEnabled] = useState<EnabledPlatforms>(loadSettings);
@@ -83,6 +91,15 @@ export function ResolverPanel({ resolveLink, inputRef, copyRich, version }: Reso
     setPendingUrl(null);
     if (url) doResolve(url);
   };
+
+  // lien reçu via la cible de partage : pré-remplit et résout une fois
+  useEffect(() => {
+    if (initialUrl) {
+      setInput(initialUrl);
+      resolve(initialUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUrl]);
 
   const onPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData("text");
@@ -246,6 +263,7 @@ function Result({
 }) {
   const links = result.links.filter((l) => enabled[l.platform]);
   const bonus = result.bonus.filter((l) => enabled[l.platform]);
+  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-2.5">
@@ -290,7 +308,16 @@ function Result({
           No platform enabled — open settings (gear icon).
         </p>
       ) : (
-        <CopyAllButton result={result} links={links} bonus={bonus} copyRich={copyRich} />
+        <div className="flex flex-col gap-2">
+          {canShare && <ShareButton result={result} links={links} bonus={bonus} />}
+          <CopyAllButton
+            result={result}
+            links={links}
+            bonus={bonus}
+            copyRich={copyRich}
+            secondary={canShare}
+          />
+        </div>
       )}
     </div>
   );
@@ -363,6 +390,41 @@ function BonusChip({ link }: { link: PlatformLink }) {
   );
 }
 
+/** Bouton de partage natif (feuille de partage iOS/Android/macOS via Web Share API). */
+function ShareButton({
+  result,
+  links,
+  bonus,
+}: {
+  result: ResolveResult;
+  links: PlatformLink[];
+  bonus: PlatformLink[];
+}) {
+  const onShare = async () => {
+    try {
+      await navigator.share({
+        title: `${result.title} — ${result.artist}`,
+        text: formatShareText(result, links, bonus),
+      });
+    } catch {
+      /* partage annulé par l'utilisateur */
+    }
+  };
+  return (
+    <button
+      onClick={onShare}
+      className="flex items-center justify-center gap-2 rounded-xl bg-zinc-100 py-2.5 text-[13px] font-semibold text-zinc-900 transition hover:bg-white"
+    >
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+        <polyline points="16 6 12 2 8 6" />
+        <line x1="12" y1="2" x2="12" y2="15" />
+      </svg>
+      Share
+    </button>
+  );
+}
+
 /** Pastille de couleur par plateforme principale, blanche pour les autres. */
 const PLATFORM_HEART: Record<string, string> = {
   spotify: "🟢",
@@ -431,6 +493,7 @@ function CopyAllButton({
   links,
   bonus,
   copyRich,
+  secondary = false,
 }: {
   result: ResolveResult;
   // toujours des liens web https : seuls eux sont cliquables dans les
@@ -438,6 +501,8 @@ function CopyAllButton({
   links: PlatformLink[];
   bonus: PlatformLink[];
   copyRich?: (html: string, text: string) => Promise<void>;
+  /** style discret quand un bouton « Share » primaire est présent au-dessus */
+  secondary?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -453,14 +518,16 @@ function CopyAllButton({
     timer.current = setTimeout(() => setCopied(false), 1500);
   };
 
+  const base = copied
+    ? "bg-emerald-500/15 text-emerald-400"
+    : secondary
+      ? "border border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10"
+      : "bg-zinc-100 text-zinc-900 hover:bg-white";
+
   return (
     <button
       onClick={onClick}
-      className={`rounded-xl py-2.5 text-[13px] font-semibold transition ${
-        copied
-          ? "bg-emerald-500/15 text-emerald-400"
-          : "bg-zinc-100 text-zinc-900 hover:bg-white"
-      }`}
+      className={`rounded-xl py-2.5 text-[13px] font-semibold transition ${base}`}
     >
       {copied ? "Message copied!" : "Copy all"}
     </button>
