@@ -137,7 +137,8 @@ export function ResolverPanel({
             value={input}
             spellCheck={false}
             autoFocus
-            placeholder="Paste a Qobuz, Spotify, Apple Music or Deezer link…"
+            placeholder=""
+            aria-label="Paste a Spotify, Apple Music, Deezer or Qobuz link"
             onChange={(e) => setInput(e.target.value)}
             onPaste={onPaste}
             onKeyDown={(e) => e.key === "Enter" && resolve(input)}
@@ -145,6 +146,7 @@ export function ResolverPanel({
               !input && canPaste ? "pr-[68px]" : "pr-8"
             }`}
           />
+          {!input && <RotatingPlaceholder rightGap={canPaste} />}
           {input ? (
             <button
               onClick={() => {
@@ -238,6 +240,59 @@ export function ResolverPanel({
           )}
         </>
       )}
+    </div>
+  );
+}
+
+/** Placeholder animé : « Paste your <Platform> link » qui défile toutes les 2 s
+ *  (le libellé courant glisse vers le haut, le suivant arrive du bas). */
+const PLATFORM_PROMPTS = ["Spotify", "Apple Music", "Deezer", "Qobuz", "Amazon Music", "Tidal"];
+
+function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
+  const [i, setI] = useState(0);
+  const [animate, setAnimate] = useState(true);
+
+  useEffect(() => {
+    const id = setInterval(() => setI((n) => n + 1), 2000);
+    return () => clearInterval(id);
+  }, []);
+
+  // boucle sans à-coup : on duplique le 1er libellé en fin de rouleau, et
+  // arrivé dessus on revient à 0 sans transition
+  const items = [...PLATFORM_PROMPTS, PLATFORM_PROMPTS[0]];
+  const onTransitionEnd = () => {
+    if (i === PLATFORM_PROMPTS.length) {
+      setAnimate(false);
+      setI(0);
+    }
+  };
+  useEffect(() => {
+    if (!animate) {
+      const r = requestAnimationFrame(() => setAnimate(true));
+      return () => cancelAnimationFrame(r);
+    }
+  }, [animate]);
+
+  return (
+    <div
+      aria-hidden
+      className={`rotating-ph pointer-events-none absolute left-3.5 top-1/2 h-[1.4em] -translate-y-1/2 overflow-hidden text-[13px] text-zinc-500 ${
+        rightGap ? "right-[68px]" : "right-8"
+      }`}
+    >
+      <div
+        style={{
+          transform: `translateY(-${i * 1.4}em)`,
+          transition: animate ? "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)" : "none",
+        }}
+        onTransitionEnd={onTransitionEnd}
+      >
+        {items.map((p, idx) => (
+          <div key={idx} className="h-[1.4em] truncate leading-[1.4em]">
+            Paste your {p} link
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

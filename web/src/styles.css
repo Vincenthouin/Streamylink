@@ -12,7 +12,9 @@ body {
 }
 
 /* iOS Safari zoome sur les champs dont la police fait < 16px ; on force 16px
-   sur le web pour éviter le zoom au focus (le desktop garde sa taille) */
-input {
+   sur le web pour éviter le zoom au focus (le desktop garde sa taille).
+   Le placeholder animé (.rotating-ph) s'aligne sur la même taille. */
+input,
+.rotating-ph {
   font-size: 16px !important;
 }
