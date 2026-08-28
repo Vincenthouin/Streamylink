@@ -16,19 +16,3 @@ body {
 input {
   font-size: 16px !important;
 }
-
-/* iOS n'a pas d'API fiable de verrouillage d'orientation pour les PWA : on
-   force le portrait sur mobile en contre-pivotant le contenu de 90° quand le
-   téléphone est en paysage (le contenu reste en disposition portrait). */
-@media (orientation: landscape) and (pointer: coarse) {
-  html {
-    transform: rotate(-90deg);
-    transform-origin: left top;
-    width: 100vh;
-    height: 100vw;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    overflow-x: hidden;
-  }
-}
