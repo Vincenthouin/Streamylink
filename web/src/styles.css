@@ -6,4 +6,13 @@
 html,
 body {
   background: #0c0c10;
+  /* pas de défilement horizontal sur mobile */
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* iOS Safari zoome sur les champs dont la police fait < 16px ; on force 16px
+   sur le web pour éviter le zoom au focus (le desktop garde sa taille) */
+input {
+  font-size: 16px !important;
 }

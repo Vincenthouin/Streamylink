@@ -79,6 +79,15 @@ function DesktopCard() {
   );
 }
 
+/** La carte de téléchargement Mac n'a de sens que sur un Mac de bureau :
+ *  on la masque sur mobile/tablette (et sur les autres OS). */
+function isMacDesktop(): boolean {
+  if (typeof navigator === "undefined") return false;
+  // maxTouchPoints est fiable : 0 sur un Mac de bureau, ≥ 1 sur iPhone/iPad
+  // (l'iPad se présente pourtant comme « Macintosh » dans l'UA).
+  return /Macintosh|Mac OS X/.test(navigator.userAgent) && navigator.maxTouchPoints === 0;
+}
+
 export default function App() {
   return (
     <div className="flex min-h-screen flex-col items-center px-4 pt-[10vh] pb-8">
@@ -96,7 +105,7 @@ export default function App() {
         <ResolverPanel resolveLink={resolveViaApi} version={__APP_VERSION__} />
       </main>
 
-      <DesktopCard />
+      {isMacDesktop() && <DesktopCard />}
 
       <footer className="mt-6 text-[11px] text-zinc-600">Powered by Odesli</footer>
     </div>
