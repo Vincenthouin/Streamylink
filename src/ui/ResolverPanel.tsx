@@ -34,6 +34,9 @@ export interface ResolverPanelProps {
   version?: string;
   /** lien reçu via la cible de partage (web) : résolu automatiquement au chargement */
   initialUrl?: string;
+  /** notifie la coquille de la pochette du résultat courant (web : fond de page).
+   *  Reçoit undefined hors résultat (idle / chargement / erreur). */
+  onResult?: (image: string | undefined) => void;
 }
 
 export function ResolverPanel({
@@ -42,6 +45,7 @@ export function ResolverPanel({
   copyRich,
   version,
   initialUrl,
+  onResult,
 }: ResolverPanelProps) {
   const [input, setInput] = useState("");
   const [state, setState] = useState<State>({ status: "idle" });
@@ -56,6 +60,11 @@ export function ResolverPanel({
   useEffect(() => {
     if (stored) saveSettings(enabled);
   }, [enabled, stored]);
+
+  // remonte la pochette du résultat courant (fond de page côté web)
+  useEffect(() => {
+    onResult?.(state.status === "done" ? state.result.image : undefined);
+  }, [state, onResult]);
 
 
   const doResolve = useCallback(

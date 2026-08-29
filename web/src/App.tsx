@@ -3,7 +3,7 @@
  * l'API serveur /api/resolve (la résolution ne peut pas se faire dans le
  * navigateur à cause du CORS des plateformes).
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ResolverPanel } from "../../src/ui/ResolverPanel";
 import { qobuzOgUrl, qobuzSingleTrackUrl } from "../../src/core/resolver";
 import type { ResolveResponse } from "../../src/shared/types";
@@ -105,8 +105,24 @@ function isMacDesktop(): boolean {
 
 export default function App() {
   const sharedUrl = useMemo(consumeSharedLink, []);
+  // pochette du résultat courant : fond de page (noir + image floutée à 50 %)
+  const [coverUrl, setCoverUrl] = useState<string | undefined>();
   return (
-    <div className="flex min-h-screen flex-col items-center px-4 pt-[10vh] pb-8">
+    <>
+      {coverUrl && (
+        // fond positionné (z-0) : passe AU-DESSUS du fond opaque du body ; le
+        // contenu (relative z-10) reste au-dessus. pochette à 20 % sur noir →
+        // contraste UI conforme WCAG AAA. scale-125 : le flou ne révèle pas les
+        // bords transparents de l'image.
+        <div className="pointer-events-none fixed inset-0 z-0 bg-black" aria-hidden>
+          <img
+            src={coverUrl}
+            alt=""
+            className="h-full w-full scale-125 object-cover opacity-20 blur-lg"
+          />
+        </div>
+      )}
+      <div className="relative z-10 flex min-h-screen flex-col items-center px-4 pt-[10vh] pb-8">
       <header className="mb-5 flex flex-col items-center gap-1.5">
         <div className="flex items-center gap-2.5">
           <span className="text-2xl text-zinc-100" aria-hidden>
@@ -126,6 +142,7 @@ export default function App() {
           resolveLink={resolveViaApi}
           version={__APP_VERSION__}
           initialUrl={sharedUrl}
+          onResult={setCoverUrl}
         />
       </main>
 
@@ -135,6 +152,7 @@ export default function App() {
         {isMacDesktop() && <DesktopCard />}
         <footer className="text-[11px] text-zinc-600">Powered by Odesli</footer>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
