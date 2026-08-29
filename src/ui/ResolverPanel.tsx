@@ -271,7 +271,7 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
   }, []);
 
   useEffect(() => {
-    const id = setInterval(() => setI((n) => n + 1), 2000);
+    const id = setInterval(() => setI((n) => n + 1), 4000);
     return () => clearInterval(id);
   }, []);
 
