@@ -4,7 +4,7 @@
  * Chaque coquille fournit sa fonction `resolveLink` (IPC côté Electron,
  * fetch vers /api/resolve côté web). Interface en anglais.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PlatformLink, ResolveResponse, ResolveResult } from "../shared/types";
 import { BONUS_PLATFORMS, MAIN_PLATFORMS, PLATFORM_NAMES } from "../shared/platforms";
 import { CheckIcon, CopyIcon, PLATFORM_COLOR, PLATFORM_LOGO } from "./logos";
@@ -109,14 +109,18 @@ export function ResolverPanel({
     e.preventDefault();
   };
 
-  // bouton « Coller » : lit le presse-papier (sur iOS, affiche la confirmation
-  // native). On ne peut PAS savoir à l'avance s'il contient quelque chose.
-  // Restreint au mobile (appareils tactiles) : sur desktop on utilise ⌘V.
+  // Collage au tap : au 1er appui sur le champ vide (mobile), on lit le
+  // presse-papier — iOS affiche alors sa confirmation native « Coller ». On ne
+  // peut pas lire au chargement (readText exige un geste utilisateur), d'où le
+  // déclenchement sur le tap. Restreint au mobile (tactile) : sur desktop ⌘V.
   const canPaste =
     typeof navigator !== "undefined" &&
     !!navigator.clipboard?.readText &&
     navigator.maxTouchPoints > 0;
+  const readingRef = useRef(false);
   const pasteFromClipboard = async () => {
+    if (readingRef.current) return; // évite une double lecture concurrente
+    readingRef.current = true;
     try {
       const text = (await navigator.clipboard.readText()).trim();
       if (text) {
@@ -126,6 +130,8 @@ export function ResolverPanel({
       }
     } catch {
       /* refusé ou vide : on ne fait rien */
+    } finally {
+      readingRef.current = false;
     }
   };
 
@@ -145,12 +151,14 @@ export function ResolverPanel({
             aria-label="Paste a Spotify, Apple Music, Deezer or Qobuz link"
             onChange={(e) => setInput(e.target.value)}
             onPaste={onPaste}
+            onClick={() => {
+              // au tap sur le champ vide (mobile), déclenche le collage natif
+              if (!input && canPaste) pasteFromClipboard();
+            }}
             onKeyDown={(e) => e.key === "Enter" && resolve(input)}
-            className={`w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-3.5 text-[13px] text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-white/25 focus:bg-white/[0.07] ${
-              !input && canPaste ? "pr-[68px]" : "pr-8"
-            }`}
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-3.5 pr-8 text-[13px] text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-white/25 focus:bg-white/[0.07]"
           />
-          {!input && <RotatingPlaceholder rightGap={canPaste} />}
+          {!input && <RotatingPlaceholder rightGap={false} />}
           {input ? (
             <button
               onClick={() => {
@@ -164,18 +172,6 @@ export function ResolverPanel({
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
-            </button>
-          ) : canPaste ? (
-            <button
-              onClick={pasteFromClipboard}
-              className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg border border-white/10 bg-white/10 px-2 py-1 text-[11px] font-medium text-zinc-300 transition hover:bg-white/15 hover:text-zinc-100"
-              title="Paste from clipboard"
-            >
-              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <rect x="9" y="9" width="13" height="13" rx="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-              Paste
             </button>
           ) : null}
         </div>
@@ -255,17 +251,24 @@ const PLATFORM_PROMPTS = ["Spotify", "Apple Music", "Deezer", "Qobuz", "Amazon M
 function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
   const [i, setI] = useState(0);
   const [animate, setAnimate] = useState(true);
+  const itemRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const [widths, setWidths] = useState<number[]>([]);
+
+  // largeur naturelle de chaque libellé (pour que « link » glisse au lieu de
+  // laisser un blanc fixe)
+  useLayoutEffect(() => {
+    setWidths(itemRefs.current.map((el) => (el ? el.getBoundingClientRect().width : 0)));
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setI((n) => n + 1), 2000);
     return () => clearInterval(id);
   }, []);
 
-  // boucle sans à-coup : on duplique le 1er libellé en fin de rouleau, et
-  // arrivé dessus on revient à 0 sans transition
+  // boucle sans à-coup : 1er libellé dupliqué en fin, retour à 0 sans transition
   const items = [...PLATFORM_PROMPTS, PLATFORM_PROMPTS[0]];
-  const onTransitionEnd = () => {
-    if (i === PLATFORM_PROMPTS.length) {
+  const onTransitionEnd = (e: React.TransitionEvent) => {
+    if (e.propertyName === "transform" && i === PLATFORM_PROMPTS.length) {
       setAnimate(false);
       setI(0);
     }
@@ -277,6 +280,8 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
     }
   }, [animate]);
 
+  const w = widths[i];
+  const ease = "cubic-bezier(0.4, 0, 0.2, 1)";
   return (
     <div
       aria-hidden
@@ -285,18 +290,28 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
       }`}
     >
       Paste your&nbsp;
-      {/* seul le nom de plateforme défile ; « Paste your » et « link » restent fixes */}
-      <span className="inline-block h-[1.4em] overflow-hidden align-middle">
+      {/* seul le nom de plateforme défile verticalement ; sa largeur s'anime
+          pour que « link » glisse (« Paste your » et « link » ne défilent pas) */}
+      <span
+        className="inline-block h-[1.4em] overflow-hidden align-middle"
+        style={{ width: w != null ? `${w}px` : undefined, transition: animate ? `width 0.45s ${ease}` : "none" }}
+      >
         <span
           className="block"
           style={{
             transform: `translateY(-${i * 1.4}em)`,
-            transition: animate ? "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)" : "none",
+            transition: animate ? `transform 0.45s ${ease}` : "none",
           }}
           onTransitionEnd={onTransitionEnd}
         >
           {items.map((p, idx) => (
-            <span key={idx} className="block h-[1.4em] leading-[1.4em]">
+            <span
+              key={idx}
+              ref={(el) => {
+                itemRefs.current[idx] = el;
+              }}
+              className="block h-[1.4em] w-max leading-[1.4em]"
+            >
               {p}
             </span>
           ))}

@@ -109,8 +109,12 @@ La logique et l'UI sont partagées ; seules les « coquilles » diffèrent.
 ## Utilisateur
 UX (Somfy), francophone. Soigner la simplicité de l'UI. Répondre en français.
 
-## En cours (non committé au moment de l'écriture)
-Dans `ResolverPanel.tsx` : (1) placeholder « link glisse » (nom de plateforme
-défile en rouleau, largeur du slot animée pour que « link » suive) ; (2) bouton
-Coller remplacé par déclenchement du collage au **tap sur l'input** (mobile,
-`navigator.maxTouchPoints>0`) — impossible au page load (geste requis).
+## Placeholder animé & collage mobile (fait)
+Dans `ResolverPanel.tsx` — `RotatingPlaceholder` : seul le nom de plateforme
+défile en rouleau (translateY), et la **largeur du slot est mesurée par nom**
+(`useLayoutEffect` + `getBoundingClientRect`, items en `w-max`) puis animée pour
+que « link » glisse au lieu de laisser un blanc fixe. Collage : plus de bouton
+Coller — `pasteFromClipboard()` se déclenche au **tap sur l'input vide**
+(`onClick`, mobile via `navigator.maxTouchPoints>0`) ; impossible au page load
+(geste requis). Vérif live via config launch `web-dev` (Vite HMR, `web:start`
+sert un `dist-web/` **périmé**).
