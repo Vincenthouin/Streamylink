@@ -129,9 +129,13 @@ export default function App() {
           <img
             src={shownCover}
             alt=""
-            className="h-full w-full scale-125 object-cover opacity-20 blur-lg"
+            className="h-full w-full scale-125 object-cover opacity-30 blur-lg"
           />
         )}
+        {/* dégradé sombre en haut et en bas : ré-assombrit les zones header et
+            footer (texte posé directement sur le fond) pour garder AAA à 30 %,
+            sans toucher le centre (les cartes sont de toute façon opaques) */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.6)_0%,rgba(0,0,0,0)_28%,rgba(0,0,0,0)_72%,rgba(0,0,0,0.6)_100%)]" />
       </div>
       <div className="relative z-10 flex min-h-screen flex-col items-center px-4 pt-[10vh] pb-8">
       <header className="mb-5 flex flex-col items-center gap-1.5">
