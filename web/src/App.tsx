@@ -73,7 +73,7 @@ function DesktopCard() {
   return (
     <a
       href={DMG_URL}
-      className="group flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900/80 p-3.5 transition hover:border-white/20 hover:bg-zinc-800/80"
+      className="group flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-black p-3.5 transition hover:border-white/20 hover:bg-zinc-900"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-lg text-zinc-200">
         {/* logo Apple */}

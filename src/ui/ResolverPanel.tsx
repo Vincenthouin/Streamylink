@@ -175,7 +175,7 @@ export function ResolverPanel({
               if (!input && canPaste) pasteFromClipboard();
             }}
             onKeyDown={(e) => e.key === "Enter" && resolve(input)}
-            className="w-full rounded-xl border border-white/10 bg-zinc-900/80 py-2.5 pl-3.5 pr-8 text-[13px] text-zinc-100 placeholder-zinc-400 outline-none transition focus:border-white/25 focus:bg-zinc-900/95"
+            className="w-full rounded-xl border border-white/10 bg-black py-2.5 pl-3.5 pr-8 text-[13px] text-zinc-100 placeholder-zinc-400 outline-none transition focus:border-white/25 focus:bg-zinc-900"
           />
           {!input && <RotatingPlaceholder rightGap={false} />}
           {input ? (
@@ -382,7 +382,7 @@ function PlatformToggleList({
         <button
           key={p}
           onClick={() => toggle(p)}
-          className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/80 px-3.5 py-2 text-left transition hover:border-white/20 hover:bg-zinc-800/80"
+          className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-black px-3.5 py-2 text-left transition hover:border-white/20 hover:bg-zinc-900"
         >
           <span style={{ color: PLATFORM_COLOR[p] ?? "#a1a1aa" }} className="shrink-0">
             {PLATFORM_LOGO(p, "h-4.5 w-4.5")}
@@ -427,7 +427,7 @@ function Result({
     navigator.maxTouchPoints > 0;
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/80 p-2.5">
+      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black p-2.5">
         {result.image ? (
           <img
             src={result.image}
@@ -503,7 +503,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
   const isWeb = /^https?:/i.test(link.url);
 
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/80 py-1.5 pl-3.5 pr-1.5 transition hover:border-white/20 hover:bg-zinc-800/80">
+    <div className="group flex items-center gap-3 rounded-xl border border-white/10 bg-black py-1.5 pl-3.5 pr-1.5 transition hover:border-white/20 hover:bg-zinc-900">
       <a
         href={link.url}
         target={isWeb ? "_blank" : undefined}
@@ -541,8 +541,8 @@ function BonusChip({ link }: { link: PlatformLink }) {
       onClick={() => copy(link.url)}
       className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
         copied
-          ? "border-emerald-500/40 bg-zinc-900/80 text-emerald-400"
-          : "border-white/10 bg-zinc-900/80 text-zinc-300 hover:border-white/25 hover:text-zinc-100"
+          ? "border-emerald-500/40 bg-black text-emerald-400"
+          : "border-white/10 bg-black text-zinc-300 hover:border-white/25 hover:text-zinc-100"
       }`}
       title={`Copy ${link.name} link`}
     >
