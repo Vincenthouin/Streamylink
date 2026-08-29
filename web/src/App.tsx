@@ -73,7 +73,7 @@ function DesktopCard() {
   return (
     <a
       href={DMG_URL}
-      className="group flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 transition hover:border-white/20 hover:bg-white/[0.06]"
+      className="group flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900/80 p-3.5 transition hover:border-white/20 hover:bg-zinc-800/80"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-lg text-zinc-200">
         {/* logo Apple */}
@@ -83,11 +83,11 @@ function DesktopCard() {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-semibold text-zinc-100">Also available on Mac</p>
-        <p className="text-[12px] text-zinc-500">
+        <p className="text-[12px] text-zinc-300">
           Menu-bar app — paste from anywhere, no browser needed.
         </p>
       </div>
-      <span className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-300 transition group-hover:border-white/25 group-hover:text-zinc-100">
+      <span className="shrink-0 rounded-lg border border-white/10 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-zinc-100 transition group-hover:border-white/25 group-hover:text-zinc-100">
         Download
       </span>
     </a>
@@ -143,7 +143,7 @@ export default function App() {
           </span>
           <h1 className="text-lg font-semibold tracking-wide text-zinc-100">Music Share</h1>
         </div>
-        <p className="text-center text-[13px] text-zinc-500">
+        <p className="text-center text-[13px] text-zinc-300">
           Share your best songs, on every platform
         </p>
       </header>
@@ -161,7 +161,7 @@ export default function App() {
           contenu est court, sous le contenu quand il est long */}
       <div className="mt-auto flex w-full max-w-md flex-col items-center gap-4 pt-8">
         {isMacDesktop() && <DesktopCard />}
-        <footer className="text-[11px] text-zinc-600">Powered by Odesli</footer>
+        <footer className="text-[11px] text-zinc-300">Powered by Odesli</footer>
       </div>
       </div>
     </>

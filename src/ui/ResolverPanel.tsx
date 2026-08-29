@@ -175,7 +175,7 @@ export function ResolverPanel({
               if (!input && canPaste) pasteFromClipboard();
             }}
             onKeyDown={(e) => e.key === "Enter" && resolve(input)}
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-3.5 pr-8 text-[13px] text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-white/25 focus:bg-white/[0.07]"
+            className="w-full rounded-xl border border-white/10 bg-zinc-900/80 py-2.5 pl-3.5 pr-8 text-[13px] text-zinc-100 placeholder-zinc-400 outline-none transition focus:border-white/25 focus:bg-zinc-900/95"
           />
           {!input && <RotatingPlaceholder rightGap={false} />}
           {input ? (
@@ -185,7 +185,7 @@ export function ResolverPanel({
                 setPendingUrl(null);
                 setState({ status: "idle" });
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
               title="Clear"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -197,7 +197,7 @@ export function ResolverPanel({
         <button
           onClick={() => setShowSettings((v) => !v)}
           className={`shrink-0 rounded-xl p-2.5 transition ${
-            showSettings ? "bg-white/10 text-zinc-200" : "text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
+            showSettings ? "bg-white/10 text-zinc-100" : "text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
           }`}
           title={showSettings ? "Close settings" : "Settings"}
         >
@@ -219,7 +219,7 @@ export function ResolverPanel({
           <p className="px-1 text-[10px] uppercase tracking-wider text-zinc-500">Music platforms</p>
           <PlatformToggleList enabled={enabled} setEnabled={setEnabled} />
           {version && (
-            <p className="pt-2 text-center text-[10px] text-zinc-600">Version {version}</p>
+            <p className="pt-2 text-center text-[10px] text-zinc-300">Version {version}</p>
           )}
         </div>
       ) : onboarding ? (
@@ -331,7 +331,7 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
   return (
     <div
       aria-hidden
-      className={`rotating-ph pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 items-center overflow-hidden whitespace-nowrap text-[13px] text-zinc-500 ${
+      className={`rotating-ph pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 items-center overflow-hidden whitespace-nowrap text-[13px] text-zinc-400 ${
         rightGap ? "right-[68px]" : "right-8"
       }`}
     >
@@ -382,7 +382,7 @@ function PlatformToggleList({
         <button
           key={p}
           onClick={() => toggle(p)}
-          className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-left transition hover:border-white/20 hover:bg-white/[0.08]"
+          className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/80 px-3.5 py-2 text-left transition hover:border-white/20 hover:bg-zinc-800/80"
         >
           <span style={{ color: PLATFORM_COLOR[p] ?? "#a1a1aa" }} className="shrink-0">
             {PLATFORM_LOGO(p, "h-4.5 w-4.5")}
@@ -418,10 +418,16 @@ function Result({
 }) {
   const links = result.links.filter((l) => enabled[l.platform]);
   const bonus = result.bonus.filter((l) => enabled[l.platform]);
-  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+  // Partage natif réservé au mobile (tactile) : sur desktop web il n'apporte
+  // pas grand-chose → on masque « Share » et « Copy all » redevient le bouton
+  // primaire.
+  const canShare =
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    navigator.maxTouchPoints > 0;
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-2.5">
+      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/80 p-2.5">
         {result.image ? (
           <img
             src={result.image}
@@ -438,7 +444,7 @@ function Result({
           <p className="truncate text-[13px] font-semibold text-zinc-100" title={result.title}>
             {result.title}
           </p>
-          <p className="truncate text-[12px] text-zinc-400" title={result.artist}>
+          <p className="truncate text-[12px] text-zinc-300" title={result.artist}>
             {result.artist}
           </p>
         </div>
@@ -459,7 +465,7 @@ function Result({
       )}
 
       {links.length === 0 && bonus.length === 0 ? (
-        <p className="py-1 text-center text-[13px] text-zinc-500">
+        <p className="py-1 text-center text-[13px] text-zinc-300">
           No platform enabled — open settings (gear icon).
         </p>
       ) : (
@@ -497,7 +503,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
   const isWeb = /^https?:/i.test(link.url);
 
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 py-1.5 pl-3.5 pr-1.5 transition hover:border-white/20 hover:bg-white/[0.08]">
+    <div className="group flex items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/80 py-1.5 pl-3.5 pr-1.5 transition hover:border-white/20 hover:bg-zinc-800/80">
       <a
         href={link.url}
         target={isWeb ? "_blank" : undefined}
@@ -510,7 +516,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
         </span>
         <span className="truncate text-[13px] font-medium text-zinc-200">{link.name}</span>
         {link.kind === "search" && (
-          <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-zinc-500">
+          <span className="shrink-0 rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[10px] text-zinc-300">
             search
           </span>
         )}
@@ -518,7 +524,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
       <button
         onClick={() => copy(link.url)}
         className={`shrink-0 rounded-lg p-2 transition ${
-          copied ? "text-emerald-400" : "text-zinc-500 hover:bg-white/10 hover:text-zinc-200"
+          copied ? "text-emerald-400" : "text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
         }`}
         title="Copy link"
       >
@@ -535,8 +541,8 @@ function BonusChip({ link }: { link: PlatformLink }) {
       onClick={() => copy(link.url)}
       className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
         copied
-          ? "border-emerald-500/40 text-emerald-400"
-          : "border-white/10 text-zinc-400 hover:border-white/25 hover:text-zinc-200"
+          ? "border-emerald-500/40 bg-zinc-900/80 text-emerald-400"
+          : "border-white/10 bg-zinc-900/80 text-zinc-300 hover:border-white/25 hover:text-zinc-100"
       }`}
       title={`Copy ${link.name} link`}
     >
