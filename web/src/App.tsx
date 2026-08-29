@@ -73,7 +73,7 @@ function DesktopCard() {
   return (
     <a
       href={DMG_URL}
-      className="group mt-4 flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 transition hover:border-white/20 hover:bg-white/[0.06]"
+      className="group flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 transition hover:border-white/20 hover:bg-white/[0.06]"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-lg text-zinc-200">
         {/* logo Apple */}
@@ -129,9 +129,12 @@ export default function App() {
         />
       </main>
 
-      {isMacDesktop() && <DesktopCard />}
-
-      <footer className="mt-6 text-[11px] text-zinc-600">Powered by Odesli</footer>
+      {/* bloc de bas de page : mt-auto le pousse au bas de la fenêtre quand le
+          contenu est court, sous le contenu quand il est long */}
+      <div className="mt-auto flex w-full max-w-md flex-col items-center gap-4 pt-8">
+        {isMacDesktop() && <DesktopCard />}
+        <footer className="text-[11px] text-zinc-600">Powered by Odesli</footer>
+      </div>
     </div>
   );
 }
