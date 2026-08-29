@@ -277,12 +277,22 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
 
   // boucle sans à-coup : 1er libellé dupliqué en fin, retour à 0 sans transition
   const items = [...PLATFORM_PROMPTS, PLATFORM_PROMPTS[0]];
-  const onTransitionEnd = (e: React.TransitionEvent) => {
-    if (e.propertyName === "transform" && i === PLATFORM_PROMPTS.length) {
-      setAnimate(false);
-      setI(0);
+  const len = PLATFORM_PROMPTS.length;
+
+  // Reset de la boucle piloté par un TIMER (et non par onTransitionEnd) :
+  // l'app de barre de menus se masque au blur ; fenêtre masquée, les
+  // transitions CSS ne se terminent jamais → transitionend ne se déclencherait
+  // pas et le rouleau resterait bloqué dans le vide au-delà du dernier nom.
+  useEffect(() => {
+    if (i >= len) {
+      const t = setTimeout(() => {
+        setAnimate(false);
+        setI(0);
+      }, 480); // ~ durée de la transition (0,45 s)
+      return () => clearTimeout(t);
     }
-  };
+  }, [i, len]);
+
   useEffect(() => {
     if (!animate) {
       const r = requestAnimationFrame(() => setAnimate(true));
@@ -290,7 +300,10 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
     }
   }, [animate]);
 
-  const w = widths[i];
+  // index borné au clone : si un tick arrive avant le reset (fenêtre masquée),
+  // on affiche le clone plutôt que de défiler dans le vide
+  const idx = i > len ? len : i;
+  const w = widths[idx];
   const ease = "cubic-bezier(0.4, 0, 0.2, 1)";
   return (
     <div
@@ -309,10 +322,9 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
         <span
           className="block"
           style={{
-            transform: `translateY(-${i * 1.4}em)`,
+            transform: `translateY(-${idx * 1.4}em)`,
             transition: animate ? `transform 0.45s ${ease}` : "none",
           }}
-          onTransitionEnd={onTransitionEnd}
         >
           {items.map((p, idx) => (
             <span
