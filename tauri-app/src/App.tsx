@@ -32,6 +32,13 @@ export default function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [version, setVersion] = useState("");
+  // pochette du résultat courant : fond de fenêtre (comme sur le web).
+  // shownCover conserve la dernière pochette le temps du fondu de sortie.
+  const [coverUrl, setCoverUrl] = useState<string | undefined>();
+  const [shownCover, setShownCover] = useState<string | undefined>();
+  useEffect(() => {
+    if (coverUrl) setShownCover(coverUrl);
+  }, [coverUrl]);
 
   useEffect(() => {
     getVersion().then(setVersion).catch(() => {});
@@ -86,10 +93,36 @@ export default function App() {
   }, []);
 
   return (
-    <div ref={contentRef}>
-      <UpdateBanner />
-      <ResolverPanel resolveLink={resolve} inputRef={inputRef} copyRich={copyRich} version={version} />
-    </div>
+    <>
+      {/* fond pochette (fondu, 30 %, dégradé haut/bas) — identique au web.
+          Fixé au viewport de la fenêtre, hors de contentRef pour ne pas fausser
+          la hauteur mesurée par le ResizeObserver. */}
+      <div
+        className={`pointer-events-none fixed inset-0 z-0 bg-black transition-opacity duration-700 ${
+          coverUrl ? "opacity-100" : "opacity-0"
+        }`}
+        aria-hidden
+      >
+        {shownCover && (
+          <img
+            src={shownCover}
+            alt=""
+            className="h-full w-full scale-125 object-cover opacity-30 blur-lg"
+          />
+        )}
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.6)_0%,rgba(0,0,0,0)_28%,rgba(0,0,0,0)_72%,rgba(0,0,0,0.6)_100%)]" />
+      </div>
+      <div ref={contentRef} className="relative z-10">
+        <UpdateBanner />
+        <ResolverPanel
+          resolveLink={resolve}
+          inputRef={inputRef}
+          copyRich={copyRich}
+          version={version}
+          onResult={setCoverUrl}
+        />
+      </div>
+    </>
   );
 }
 
