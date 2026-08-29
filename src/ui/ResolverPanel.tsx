@@ -149,7 +149,17 @@ export function ResolverPanel({
             autoFocus
             placeholder=""
             aria-label="Paste a Spotify, Apple Music, Deezer or Qobuz link"
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setInput(v);
+              // champ vidé au clavier : on efface aussi l'éventuel message
+              // d'erreur/résultat et on annule une résolution en cours
+              if (!v.trim()) {
+                requestId.current++;
+                setPendingUrl(null);
+                setState({ status: "idle" });
+              }
+            }}
             onPaste={onPaste}
             onClick={() => {
               // au tap sur le champ vide (mobile), déclenche le collage natif
