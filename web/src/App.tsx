@@ -3,7 +3,7 @@
  * l'API serveur /api/resolve (la résolution ne peut pas se faire dans le
  * navigateur à cause du CORS des plateformes).
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ResolverPanel } from "../../src/ui/ResolverPanel";
 import { qobuzOgUrl, qobuzSingleTrackUrl } from "../../src/core/resolver";
 import type { ResolveResponse } from "../../src/shared/types";
@@ -105,23 +105,34 @@ function isMacDesktop(): boolean {
 
 export default function App() {
   const sharedUrl = useMemo(consumeSharedLink, []);
-  // pochette du résultat courant : fond de page (noir + image floutée à 50 %)
+  // pochette du résultat courant : fond de page (noir + image floutée à 20 %)
   const [coverUrl, setCoverUrl] = useState<string | undefined>();
+  // dernière pochette affichée, conservée pour rester visible pendant le fondu
+  // de sortie (le conteneur reste monté et anime son opacité)
+  const [shownCover, setShownCover] = useState<string | undefined>();
+  useEffect(() => {
+    if (coverUrl) setShownCover(coverUrl);
+  }, [coverUrl]);
   return (
     <>
-      {coverUrl && (
-        // fond positionné (z-0) : passe AU-DESSUS du fond opaque du body ; le
-        // contenu (relative z-10) reste au-dessus. pochette à 20 % sur noir →
-        // contraste UI conforme WCAG AAA. scale-125 : le flou ne révèle pas les
-        // bords transparents de l'image.
-        <div className="pointer-events-none fixed inset-0 z-0 bg-black" aria-hidden>
+      {/* fond TOUJOURS monté, opacité animée → fondu entrant/sortant. Positionné
+          (z-0) pour passer au-dessus du fond opaque du body ; le contenu
+          (relative z-10) reste au-dessus. pochette à 20 % sur noir → contraste
+          UI conforme WCAG AAA. scale-125 : le flou ne révèle pas les bords. */}
+      <div
+        className={`pointer-events-none fixed inset-0 z-0 bg-black transition-opacity duration-700 ${
+          coverUrl ? "opacity-100" : "opacity-0"
+        }`}
+        aria-hidden
+      >
+        {shownCover && (
           <img
-            src={coverUrl}
+            src={shownCover}
             alt=""
             className="h-full w-full scale-125 object-cover opacity-20 blur-lg"
           />
-        </div>
-      )}
+        )}
+      </div>
       <div className="relative z-10 flex min-h-screen flex-col items-center px-4 pt-[10vh] pb-8">
       <header className="mb-5 flex flex-col items-center gap-1.5">
         <div className="flex items-center gap-2.5">
