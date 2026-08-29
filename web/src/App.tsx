@@ -109,12 +109,16 @@ export default function App() {
     <div className="flex min-h-screen flex-col items-center px-4 pt-[10vh] pb-8">
       <header className="mb-5 flex flex-col items-center gap-1.5">
         <div className="flex items-center gap-2.5">
-          <span className="text-2xl" aria-hidden>
-            ♫
+          <span className="text-2xl text-zinc-100" aria-hidden>
+            {/* U+FE0E force la présentation « texte » monochrome (sinon rendu
+                emoji noir sur certains systèmes → invisible sur fond sombre) */}
+            {"♫︎"}
           </span>
           <h1 className="text-lg font-semibold tracking-wide text-zinc-100">Music Share</h1>
         </div>
-        <p className="text-center text-[13px] text-zinc-500">One link, every platform.</p>
+        <p className="text-center text-[13px] text-zinc-500">
+          Share your best songs, on every platform
+        </p>
       </header>
 
       <main className="w-full max-w-md">
