@@ -270,8 +270,22 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
     setWidths(itemRefs.current.map((el) => (el ? el.getBoundingClientRect().width : 0)));
   }, []);
 
+  // Le rouleau avance d'un cran toutes les ~3 s. Garde-fou ANTI-RAFALE piloté
+  // par l'horloge : quand l'app de barre de menus est masquée (blur) puis
+  // revient au focus, la WebView peut rejouer d'un coup plusieurs ticks de
+  // timer accumulés → défilement éclair de toutes les plateformes. On borne
+  // donc à un pas toutes les 2,5 s de temps réel : une salve de callbacks
+  // rapprochés ne fait avancer que d'un seul cran. Volontairement SANS
+  // dépendance à document.hidden (certaines WebViews le rapportent mal → gel).
+  const lastStepRef = useRef(0);
   useEffect(() => {
-    const id = setInterval(() => setI((n) => n + 1), 3000);
+    const id = setInterval(() => {
+      const now = Date.now();
+      if (now - lastStepRef.current >= 2500) {
+        lastStepRef.current = now;
+        setI((n) => n + 1);
+      }
+    }, 3000);
     return () => clearInterval(id);
   }, []);
 
