@@ -73,21 +73,21 @@ function DesktopCard() {
   return (
     <a
       href={DMG_URL}
-      className="group flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-black p-3.5 transition hover:border-white/20 hover:bg-zinc-900"
+      className="group flex w-full max-w-md items-center gap-3 rounded-2xl border border-line bg-card p-3.5 transition hover:bg-card-hover"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-lg text-zinc-200">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-subtle text-lg text-fg">
         {/* logo Apple */}
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
           <path d="M17.1 1.2c.06.63-.18 1.26-.6 1.74-.43.5-1.1.87-1.75.82-.07-.6.2-1.24.6-1.65.44-.48 1.18-.85 1.75-.91zm2.62 15.32c-.48 1.1-.71 1.6-1.33 2.57-.86 1.36-2.08 3.06-3.6 3.07-1.34.02-1.69-.88-3.51-.87-1.82.01-2.2.9-3.55.88-1.51-.01-2.66-1.54-3.53-2.9-2.43-3.8-2.68-8.26-1.18-10.63 1.06-1.69 2.74-2.68 4.32-2.68 1.6 0 2.61.9 3.94.9 1.29 0 2.07-.9 3.93-.9 1.4 0 2.89.78 3.95 2.13-3.47 1.95-2.91 7.01.56 8.43z" />
         </svg>
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-zinc-100">Also available on Mac</p>
-        <p className="text-[12px] text-zinc-300">
+        <p className="text-[13px] font-semibold text-fg">Also available on Mac</p>
+        <p className="text-[12px] text-muted">
           Menu-bar app — paste from anywhere, no browser needed.
         </p>
       </div>
-      <span className="shrink-0 rounded-lg border border-white/10 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-zinc-100 transition group-hover:border-white/25 group-hover:text-zinc-100">
+      <span className="shrink-0 rounded-lg border border-line bg-subtle px-2.5 py-1 text-[11px] font-medium text-fg transition group-hover:border-line-selected">
         Download
       </span>
     </a>
@@ -140,14 +140,14 @@ export default function App() {
       <div className="relative z-10 flex min-h-screen flex-col items-center px-4 pt-[10vh] pb-8">
       <header className="mb-5 flex flex-col items-center gap-1.5">
         <div className="flex items-center gap-2.5">
-          <span className="text-2xl text-zinc-100" aria-hidden>
+          <span className="text-2xl text-fg" aria-hidden>
             {/* U+FE0E force la présentation « texte » monochrome (sinon rendu
                 emoji noir sur certains systèmes → invisible sur fond sombre) */}
             {"♫︎"}
           </span>
-          <h1 className="text-lg font-semibold tracking-wide text-zinc-100">Music Share</h1>
+          <h1 className="text-lg font-semibold tracking-wide text-fg">Music Share</h1>
         </div>
-        <p className="text-center text-[13px] text-zinc-300">
+        <p className="text-center text-[13px] text-muted">
           Share your best songs, on every platform
         </p>
       </header>
@@ -165,7 +165,7 @@ export default function App() {
           contenu est court, sous le contenu quand il est long */}
       <div className="mt-auto flex w-full max-w-md flex-col items-center gap-4 pt-8">
         {isMacDesktop() && <DesktopCard />}
-        <footer className="text-[11px] text-zinc-300">Powered by Odesli</footer>
+        <footer className="text-[11px] text-muted">Powered by Odesli</footer>
       </div>
       </div>
     </>

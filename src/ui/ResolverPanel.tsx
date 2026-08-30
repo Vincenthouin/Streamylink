@@ -147,7 +147,7 @@ export function ResolverPanel({
   const onboarding = pendingUrl !== null;
 
   return (
-    <div className="flex flex-col gap-3 p-3 text-zinc-200 antialiased">
+    <div className="flex flex-col gap-3 p-3 text-fg antialiased">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <input
@@ -175,7 +175,7 @@ export function ResolverPanel({
               if (!input && canPaste) pasteFromClipboard();
             }}
             onKeyDown={(e) => e.key === "Enter" && resolve(input)}
-            className="w-full rounded-xl border border-white/10 bg-black py-2.5 pl-3.5 pr-8 text-[13px] text-zinc-100 placeholder-zinc-400 outline-none transition focus:border-white/25 focus:bg-zinc-900"
+            className="w-full rounded-xl border border-line bg-card py-2.5 pl-3.5 pr-8 text-[13px] text-fg placeholder-faint outline-none transition focus:border-line-selected focus:bg-card-hover"
           />
           {!input && <RotatingPlaceholder rightGap={false} />}
           {input ? (
@@ -185,7 +185,7 @@ export function ResolverPanel({
                 setPendingUrl(null);
                 setState({ status: "idle" });
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-faint hover:bg-subtle hover:text-fg"
               title="Clear"
             >
               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -197,7 +197,7 @@ export function ResolverPanel({
         <button
           onClick={() => setShowSettings((v) => !v)}
           className={`shrink-0 rounded-xl p-2.5 transition ${
-            showSettings ? "bg-white/10 text-zinc-100" : "text-zinc-300 hover:bg-white/10 hover:text-zinc-100"
+            showSettings ? "bg-subtle text-fg" : "text-muted hover:bg-subtle hover:text-fg"
           }`}
           title={showSettings ? "Close settings" : "Settings"}
         >
@@ -216,26 +216,26 @@ export function ResolverPanel({
 
       {showSettings ? (
         <div className="flex flex-col gap-1.5">
-          <p className="px-1 text-[10px] uppercase tracking-wider text-zinc-500">Music platforms</p>
+          <p className="px-1 text-[10px] uppercase tracking-wider text-faint">Music platforms</p>
           <PlatformToggleList enabled={enabled} setEnabled={setEnabled} />
           {version && (
-            <p className="pt-2 text-center text-[10px] text-zinc-300">Version {version}</p>
+            <p className="pt-2 text-center text-[10px] text-muted">Version {version}</p>
           )}
         </div>
       ) : onboarding ? (
         <div className="flex flex-col gap-3">
           <div className="px-1">
-            <p className="text-[13px] font-semibold text-zinc-100">
+            <p className="text-[13px] font-semibold text-fg">
               Which platforms do you want links for?
             </p>
-            <p className="pt-0.5 text-[12px] text-zinc-500">
+            <p className="pt-0.5 text-[12px] text-faint">
               You can change this anytime in settings.
             </p>
           </div>
           <PlatformToggleList enabled={enabled} setEnabled={setEnabled} />
           <button
             onClick={finishOnboarding}
-            className="rounded-xl bg-zinc-100 py-2.5 text-[13px] font-semibold text-zinc-900 transition hover:bg-white"
+            className="rounded-xl bg-inverse py-2.5 text-[13px] font-semibold text-on-inverse transition hover:opacity-90"
           >
             Continue
           </button>
@@ -244,12 +244,12 @@ export function ResolverPanel({
         <>
           {state.status === "loading" && (
             <div className="flex justify-center py-4">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-600 border-t-zinc-200" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-fg" />
             </div>
           )}
 
           {state.status === "error" && (
-            <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-red-300">
+            <div className="rounded-xl border border-line-danger bg-danger-surface px-3.5 py-2.5 text-[13px] leading-relaxed text-danger">
               {state.message}
             </div>
           )}
@@ -331,7 +331,7 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
   return (
     <div
       aria-hidden
-      className={`rotating-ph pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 items-center overflow-hidden whitespace-nowrap text-[13px] text-zinc-400 ${
+      className={`rotating-ph pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 items-center overflow-hidden whitespace-nowrap text-[13px] text-faint ${
         rightGap ? "right-[68px]" : "right-8"
       }`}
     >
@@ -382,21 +382,21 @@ function PlatformToggleList({
         <button
           key={p}
           onClick={() => toggle(p)}
-          className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-black px-3.5 py-2 text-left transition hover:border-white/20 hover:bg-zinc-900"
+          className="flex w-full items-center gap-3 rounded-xl border border-line bg-card px-3.5 py-2 text-left transition hover:bg-card-hover"
         >
           <span style={{ color: PLATFORM_COLOR[p] ?? "#a1a1aa" }} className="shrink-0">
             {PLATFORM_LOGO(p, "h-4.5 w-4.5")}
           </span>
-          <span className="flex-1 truncate text-[13px] font-medium text-zinc-200">
+          <span className="flex-1 truncate text-[13px] font-medium text-fg">
             {PLATFORM_NAMES[p]}
           </span>
           <span
             className={`relative h-5 w-9 shrink-0 rounded-full transition ${
-              enabled[p] ? "bg-emerald-500/80" : "bg-white/15"
+              enabled[p] ? "bg-accent-solid" : "bg-subtle"
             }`}
           >
             <span
-              className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+              className={`absolute top-0.5 h-4 w-4 rounded-full bg-inverse shadow transition-all ${
                 enabled[p] ? "left-[18px]" : "left-0.5"
               }`}
             />
@@ -427,7 +427,7 @@ function Result({
     navigator.maxTouchPoints > 0;
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black p-2.5">
+      <div className="flex items-center gap-3 rounded-xl border border-line bg-card p-2.5">
         {result.image ? (
           <img
             src={result.image}
@@ -436,15 +436,15 @@ function Result({
             draggable={false}
           />
         ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/10 text-lg">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-subtle text-lg">
             🎵
           </div>
         )}
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold text-zinc-100" title={result.title}>
+          <p className="truncate text-[13px] font-semibold text-fg" title={result.title}>
             {result.title}
           </p>
-          <p className="truncate text-[12px] text-zinc-300" title={result.artist}>
+          <p className="truncate text-[12px] text-muted" title={result.artist}>
             {result.artist}
           </p>
         </div>
@@ -465,7 +465,7 @@ function Result({
       )}
 
       {links.length === 0 && bonus.length === 0 ? (
-        <p className="py-1 text-center text-[13px] text-zinc-300">
+        <p className="py-1 text-center text-[13px] text-muted">
           No platform enabled — open settings (gear icon).
         </p>
       ) : (
@@ -503,7 +503,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
   const isWeb = /^https?:/i.test(link.url);
 
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-white/10 bg-black py-1.5 pl-3.5 pr-1.5 transition hover:border-white/20 hover:bg-zinc-900">
+    <div className="group flex items-center gap-3 rounded-xl border border-line bg-card py-1.5 pl-3.5 pr-1.5 transition hover:bg-card-hover">
       <a
         href={link.url}
         target={isWeb ? "_blank" : undefined}
@@ -514,9 +514,9 @@ function PlatformRow({ link }: { link: PlatformLink }) {
         <span style={{ color }} className="shrink-0">
           {PLATFORM_LOGO(link.platform, "h-4.5 w-4.5")}
         </span>
-        <span className="truncate text-[13px] font-medium text-zinc-200">{link.name}</span>
+        <span className="truncate text-[13px] font-medium text-fg">{link.name}</span>
         {link.kind === "search" && (
-          <span className="shrink-0 rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[10px] text-zinc-300">
+          <span className="shrink-0 rounded-full border border-line bg-subtle px-2 py-0.5 text-[10px] text-muted">
             search
           </span>
         )}
@@ -524,7 +524,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
       <button
         onClick={() => copy(link.url)}
         className={`shrink-0 rounded-lg p-2 transition ${
-          copied ? "text-emerald-400" : "text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+          copied ? "text-accent" : "text-faint hover:bg-subtle hover:text-fg"
         }`}
         title="Copy link"
       >
@@ -541,8 +541,8 @@ function BonusChip({ link }: { link: PlatformLink }) {
       onClick={() => copy(link.url)}
       className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
         copied
-          ? "border-emerald-500/40 bg-black text-emerald-400"
-          : "border-white/10 bg-black text-zinc-300 hover:border-white/25 hover:text-zinc-100"
+          ? "border-line-selected bg-card text-accent"
+          : "border-line bg-card text-muted hover:border-line-selected hover:text-fg"
       }`}
       title={`Copy ${link.name} link`}
     >
@@ -574,7 +574,7 @@ function ShareButton({
   return (
     <button
       onClick={onShare}
-      className="flex items-center justify-center gap-2 rounded-xl bg-zinc-100 py-2.5 text-[13px] font-semibold text-zinc-900 transition hover:bg-white"
+      className="flex items-center justify-center gap-2 rounded-xl bg-inverse py-2.5 text-[13px] font-semibold text-on-inverse transition hover:opacity-90"
     >
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
@@ -680,10 +680,10 @@ function CopyAllButton({
   };
 
   const base = copied
-    ? "bg-emerald-500/15 text-emerald-400"
+    ? "bg-subtle text-accent"
     : secondary
-      ? "border border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10"
-      : "bg-zinc-100 text-zinc-900 hover:bg-white";
+      ? "border border-line bg-subtle text-fg hover:bg-card-hover"
+      : "bg-inverse text-on-inverse hover:opacity-90";
 
   return (
     <button

@@ -1,0 +1,51 @@
+/**
+ * Mapping Tailwind v4 des tokens DLS Core → utilitaires.
+ * Les valeurs vivent dans dls-core/tokens.css (importé par chaque styles.css).
+ * Ici on ne fait que référencer les CSS variables des tokens.
+ *
+ * Utilitaires générés :
+ *   bg-page / bg-card / bg-card-hover / bg-inverse / bg-subtle / bg-danger-surface
+ *   text-fg / text-muted / text-faint / text-on-inverse / text-accent / text-danger
+ *   border-line / border-line-selected / border-line-danger
+ *   rounded-sm|md|lg|full
+ *   *-control-s / *-control-m (gaps), size-icon-s|m|l, h-ctrl-desktop|mobile, size-media-*
+ */
+@theme {
+  /* Surfaces */
+  --color-page: var(--surface-page);
+  --color-card: var(--surface-card);
+  --color-card-hover: var(--surface-card-hover);
+  --color-inverse: var(--surface-inverse);
+  --color-subtle: var(--surface-subtle);
+  --color-danger-surface: var(--surface-danger);
+
+  /* Texte */
+  --color-fg: var(--text-primary);
+  --color-muted: var(--text-secondary);
+  --color-faint: var(--text-tertiary);
+  --color-on-inverse: var(--text-inverse);
+  --color-accent: var(--text-accent);
+  --color-danger: var(--text-danger);
+
+  /* Bordures */
+  --color-line: var(--border-default);
+  --color-line-selected: var(--border-selected);
+  --color-line-danger: var(--border-danger);
+
+  /* Rayons */
+  --radius-sm: var(--number-8);
+  --radius-md: var(--number-12);
+  --radius-lg: var(--number-16);
+  --radius-full: var(--number-9999);
+
+  /* Espacements & tailles nommés (n'écrasent pas l'échelle numérique par défaut) */
+  --spacing-control-s: var(--number-8);
+  --spacing-control-m: var(--number-16);
+  --spacing-icon-s: var(--number-16);
+  --spacing-icon-m: var(--number-24);
+  --spacing-icon-l: var(--number-32);
+  --spacing-ctrl-desktop: var(--number-44);
+  --spacing-ctrl-mobile: var(--number-48);
+  --spacing-media-desktop: var(--number-48);
+  --spacing-media-mobile: var(--number-56);
+}
