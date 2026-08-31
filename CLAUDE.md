@@ -1,120 +1,87 @@
 # Music Share (repo GitHub : Vincenthouin/Streamylink)
 
-Colle un lien Qobuz / Spotify / Apple Music / Deezer → obtiens les liens
-équivalents sur les autres plateformes. Deux supports iso-fonctionnels :
-- **Web** : `https://streamylink.vincent-thou.in` (PWA)
-- **App macOS** (barre de menus, Tauri)
-
-⚠️ **Toute évolution fonctionnelle doit être faite sur les DEUX supports.**
-La logique et l'UI sont partagées ; seules les « coquilles » diffèrent.
+Colle un lien Qobuz/Spotify/Apple Music/Deezer → liens équivalents sur les autres
+plateformes. Deux supports **iso-fonctionnels** : **Web** (PWA, streamylink.vincent-thou.in)
+et **App macOS** (barre de menus, Tauri). ⚠️ **Toute évolution fonctionnelle = les DEUX
+supports.** Logique + UI partagées ; seules les coquilles diffèrent.
 
 ## Architecture
-- `src/core/resolver.ts` : **logique de résolution partagée** (pure). `fetch`
-  injectable via `setFetch()` (Tauri y branche son plugin HTTP sans CORS).
-- `src/ui/ResolverPanel.tsx` : **toute l'UI partagée** (input, onboarding,
-  paramètres, résultats, copie). `src/ui/settings.ts`, `src/ui/logos.tsx`.
-- `src/shared/` : types, `platforms.ts` (liste + noms).
-- **Coquilles** :
-  - `web/` : frontend Vite + serveur Node (`web/server.ts`) statique +
-    `POST /api/resolve` (cache 1 h). Config `vite.web.config.ts`.
-  - `tauri-app/` + `src-tauri/` : desktop Tauri (Rust). Frontend réutilise
-    `src/ui`. Config `vite.tauri.config.ts`.
-  - `src/main` + `src/renderer` + `src/preload` : **Electron, DÉPRÉCIÉ** (gardé
-    mais plus utilisé ; le desktop est Tauri depuis v2.0.0).
+- `src/core/resolver.ts` : résolution partagée (pure), `fetch` injectable via `setFetch()`.
+- `src/ui/ResolverPanel.tsx` : **toute l'UI partagée** (+ `settings.ts`, `logos.tsx`, `theme.css`).
+- `src/shared/` : types, `platforms.ts`.
+- Coquilles : `web/` (Vite + `web/server.ts` : `POST /api/resolve`, cache 1 h) · `tauri-app/`+`src-tauri/` (Rust) · `src/main|renderer|preload` = **Electron DÉPRÉCIÉ**.
 
-## Pièges de résolution (importants)
-- **Odesli ne fournit plus Spotify/Apple Music/YouTube** (coupé en 2025) → on
-  résout en direct : Deezer par ISRC puis recherche texte (ignorer
-  `readable:false`) ; Apple Music via iTunes Search (FR puis US) + fallback
-  **lookup par UPC d'album Deezer** (l'index de recherche iTunes rate les
-  sorties récentes). Odesli sert seulement les bonus (Tidal, Amazon…).
-- **Spotify/Qobuz en sortie = liens de recherche** (pas d'API publique sans clé).
-- **Qobuz** : les OG tags ne sont servis qu'aux crawlers ; on interroge
-  l'endpoint `www.qobuz.com/opengraph/(track|album)/<id>` (CORS ouvert, UA
-  navigateur). Le **CDN Qobuz (Varnish) renvoie 403 à toutes les IP de
-  datacenter** → sur le web, c'est le **navigateur** qui fetch la page OG et
-  POST le HTML au serveur (`qobuzOgUrl`, `parseQobuzOgHtml`).
-- **Single Qobuz** (`/album/<id>` à 1 piste) : pas d'ISRC sur la page album →
-  suivre `music:song` vers la page piste (`qobuzSingleTrackUrl`).
-- **Deezer** : `api.deezer.com` renvoie des erreurs de quota transitoires
-  depuis Render → tous les appels passent par `deezerJson()` (retry). Liens
-  courts `link.deezer.com/s/…` et mobile `dzr.page.link` : suivre la redirection.
-- **`get()` du resolver** retente 3× les échecs réseau/timeout (Spotify/Qobuz
-  expirent ponctuellement depuis l'IP serveur).
+## Pièges de résolution
+- **Odesli ne sert plus Spotify/Apple/YouTube** (2025) → résolution directe : Deezer par ISRC
+  puis recherche texte (ignorer `readable:false`) ; Apple via iTunes Search FR→US + fallback
+  **lookup UPC album Deezer**. Odesli = bonus (Tidal/Amazon).
+- **Spotify/Qobuz en sortie = liens de recherche** (pas d'API sans clé).
+- **Qobuz** : OG servis qu'aux crawlers → endpoint `qobuz.com/opengraph/(track|album)/<id>`.
+  CDN Qobuz **403 sur IP datacenter** → sur le web c'est le **navigateur** qui fetch l'OG et
+  POST le HTML (`qobuzOgUrl`, `parseQobuzOgHtml`). Single Qobuz : suivre `music:song` (`qobuzSingleTrackUrl`).
+- **Deezer** : quota transitoire depuis Render → tout passe par `deezerJson()` (retry) ;
+  suivre redirections `link.deezer.com/s/…`, `dzr.page.link`. `get()` retente 3× réseau/timeout.
 
-## Desktop = Tauri (arm64, non signé)
-- ~17 Mo app / ~6 Mo dmg. **Apple Silicon uniquement** (pas d'Intel).
-- **Auto-update** (plugin updater) : clé privée dans `~/.tauri/musicshare-updater.key`
-  (hors repo, À SAUVEGARDER). Manifeste `latest.json` sur GitHub Releases.
-  Détection au démarrage + à l'ouverture de la fenêtre (throttle 1 min) + toutes
-  les 6 h. Installation **sur clic** (jamais auto). Notes de version dans le
-  bandeau via `UPDATE_NOTES` → champ `notes` de `latest.json`.
-- **Signature** : `scripts/make-release.sh` re-signe le bundle ad-hoc
-  (`codesign --force --deep -s -`) car Tauri ajoute l'icône après la signature
-  du binaire → sinon « app endommagée » sur Apple Silicon.
-- **Archive d'update** : `tar` avec `COPYFILE_DISABLE=1 --no-xattrs` (sinon
-  fichiers AppleDouble `._*` → l'updater échoue à décompresser).
-- **Nom stable** : `Music-Share-mac.dmg` (lien `releases/latest/download/…`
-  toujours à jour ; carte de téléchargement du site pointe dessus).
-- **Icône tray** : `resources/trayTemplate@2x.png` (générée par
-  `scripts/gen-tray-icon.mjs` — NE PAS utiliser qlmanage, alpha cassé).
-- **Coquille Rust** (`src-tauri/src/lib.rs`) : tray, fenêtre popover sous
-  l'icône, masquage au blur/Échap, pas d'icône Dock (Accessory), commande
-  `copy_rich` (arboard), `open_external` (ouvre http + schémas via `open`).
-  Log fichier : `~/Library/Logs/com.uxteam.musicshare/Music Share.log`.
-- **Raccourci clavier global : ABANDONNÉ.** Le plugin Tauri enregistre le
-  raccourci mais macOS ne livre jamais les événements à l'app (testé accessory
-  ET regular). Un raccourci fiable exigerait un moniteur clavier natif +
-  permission Accessibilité + signature Developer ID ($99/an). Retiré en v2.2.15.
+## Desktop = Tauri (arm64, non signé, Apple Silicon only)
+- Auto-update (plugin updater) : clé privée `~/.tauri/musicshare-updater.key` (hors repo, À SAUVEGARDER) ;
+  `latest.json` sur GitHub Releases ; install **sur clic**. Notes via `UPDATE_NOTES` → champ `notes`.
+- `scripts/make-release.sh` : **re-signe** ad-hoc (`codesign --force --deep -s -`, sinon « endommagé »)
+  et **tar `COPYFILE_DISABLE=1 --no-xattrs`** (sinon AppleDouble `._*` → updater échoue). Vérifier `._ : 0`.
+- Nom stable `Music-Share-mac.dmg`. Coquille Rust `src-tauri/src/lib.rs` (tray, popover, blur-hide,
+  Accessory, `copy_rich`, `open_external`). **Raccourci global : ABANDONNÉ** (macOS ne livre pas les events).
 
-## Hébergement web
-- **Render** (plan free, cold start ~1 min), redéploie à chaque `git push` sur
-  `main`. Config `render.yaml`. Domaine `streamylink.vincent-thou.in` via CNAME
-  dans la zone DNS OVH du domaine `vincent-thou.in`.
-- **PWA** : `web/public/manifest.webmanifest` (icônes, `orientation: portrait`
-  — respecté sur Android, ignoré iOS ; `share_target` — Android seulement, iOS
-  ne supporte pas la réception de partage). Icônes `web/public/icons/`.
-- **Partage natif** (Web Share API) : bouton « Share » si `navigator.share`
-  existe (iOS/Android/Safari macOS). `share_target` GET `/` → `initialUrl`
-  résout auto au chargement.
-- **Mobile** : input à 16px (évite le zoom iOS au focus), `overflow-x hidden`,
-  carte « Also available on Mac » masquée si `navigator.maxTouchPoints > 0`.
+## Web / hébergement
+- **Render** (free, cold start ~1 min) redéploie à chaque push `main`. Domaine via CNAME OVH.
+- PWA `web/public/manifest.webmanifest` (`share_target` Android only) ; Web Share API ; input 16px (anti-zoom iOS) ;
+  carte Mac masquée si `maxTouchPoints>0`.
 
-## Commandes
-- Web : `npm run web:dev` (+ `web:api`), `npm run web:build`, `web:start`.
-- Desktop dev : `npm run tauri:dev`. Release : `npm run tauri:release`
-  (= build app + `make-release.sh` → dmg + tar.gz + sig + latest.json).
-  Puis `gh release create vX.Y.Z <dmg> <tar.gz> <latest.json> …`.
-  Passer les notes : `export UPDATE_NOTES=$'…' && npm run tauri:release`.
-- `npm run test:chain -- <url>` : teste la résolution en console.
-- `npx tsc --noEmit` : typecheck.
+## Commandes & déploiement
+- Web : `npm run web:dev` (+ `web:api`), `web:build`, `web:start`. `npx tsc --noEmit`.
+- Desktop : bump version (package.json + src-tauri/tauri.conf.json + Cargo.toml), `npm run tauri:release`,
+  `gh release create vX.Y.Z <dmg> <tar.gz> <latest.json>`.
+- Déploiement web = push `main` → Render.
 
-## Workflow de déploiement
-- **Web** : commit + `git push origin main` → Render redéploie (~1-2 min).
-- **Desktop** : bump version (package.json + src-tauri/tauri.conf.json +
-  src-tauri/Cargo.toml), `npm run tauri:release`, `gh release create`.
-  Toujours bumper le n° partout. Vérifier `._ : 0` dans le tar.gz.
+## Design System (DLS) — fait, sur compte Figma perso vincent.thouin@gmail.com
+- **2 libs Figma** : **DLS Core** (`FRFEzZgOLYRcT6p2ZTZ57M`) = tokens + composants génériques
+  (Button, Input, Toggle, Icon button, Badge, Chip, Alert, Icons) ; **Music Share DLS**
+  (`j4RF4KaKHj7mbCeAkS7cG8`, abonnée à Core) = app-spécifiques (List item, Card, Settings row,
+  Mac download card, Logo). **Écrans** dans le fichier **Music-Share** (`e83oEhWcFuH2Zx08nMywkZ`,
+  page « Screens », abonné aux 2 libs).
+- **Tokens 3 tiers** (Figma = source de vérité) : Primitives (`number/*` px, `color/*`) → Semantic
+  (`surface/text/border` + `radius/size` + `danger`) → Component (`button/control/toggle`). Convention :
+  primitives couleurs *hidden*, `number/*` scopés dimensions, sémantique picklable.
+- **Package `dls-core`** (repo `github:Vincenthouin/dls-core`, **v0.4.0**) : `tokens/tokens.css` (CSS vars) +
+  `tokens/tailwind-preset.cjs` + `tokens.json` ; **composants React portables** (Button, Alert, Input, Toggle,
+  IconButton, Loader, Icons — stylés via CSS vars des tokens, **sans Tailwind**, `styles/components.css`). Build **tsup**
+  (`prepare` à l'install). **`gallery.html`** = référence visuelle vivante (tous composants × états, liée aux vrais
+  `tokens.css`+`components.css` → reflète toujours ce qui ship ; servir en HTTP local pour les états hover/focus).
+  Décision DS : **pas d'état « invalid » sur Input** — une erreur = `<Alert tone="danger">` sous le champ.
+- **App consomme les tokens ET les composants** (branche **`feat/dls-core-tokens`**, PAS mergée) : dép `dls-core` ;
+  `web/src/styles.css` + `tauri-app/src/styles.css` importent `dls-core/tokens.css` + **`dls-core/components.css`** +
+  `src/ui/theme.css` (mapping **Tailwind v4 `@theme`** → utilitaires `bg-card/text-fg/text-muted/border-line/rounded-md/text-accent/text-danger`).
+  Classes migrées dans `ResolverPanel` + web `App.tsx`. **`ResolverPanel` branché sur les composants** (`<Input>`,
+  `<IconButton>` engrenage/copie, `<Button>` Continue/Copy all/Share, `<Alert>` erreur, `<Loader>` chargement, `<Toggle>`/Icons) — vaut pour
+  **les 2 coquilles** (UI partagée). Le switch des lignes plateformes reste app-spécifique (« settings row ») mais
+  réutilise le **style** `.dls-toggle`.
+- **Régénérer les tokens** après changement Figma : relire les variables Figma → régénérer
+  `dls-core/tokens/*` → push `dls-core` → `npm update dls-core` dans l'app.
+- **Code Connect indisponible** (exige Figma Org/Enterprise + siège Dev ; compte perso = Éducation).
+- **Fait** : extraction Input/Toggle/IconButton/Icons/**Loader** dans `dls-core` (patron : composant React portable,
+  CSS vars, sans Tailwind, + `styles/components.css`) ; **`ResolverPanel` branché** dessus (web + Tauri) ; galerie ajoutée.
+  **Loader** créé aussi dans Figma Core (page « Loader » : anneau + arc, tokens `loader/*` dans la collection Component ;
+  arc = secteur d'anneau `arcData`+`innerRadius`, PAS `dashPattern` qui multiplie les segments).
+  _(Antérieur : Button `State` Default/Success/Disabled + `Alert` publiés dans Core ; Alert sur l'écran Error.)_
+- **À faire** : merger/déployer la branche `feat/dls-core-tokens` quand prêt (déploiement web = push `main`, cf.
+  section desktop pour le release Tauri). Extraction restante possible : Badge, Chip (déjà dans Figma Core).
+- Écrire dans Figma = MCP `use_figma` (charger la guidance `figma-use`/`figma-generate-library`).
 
 ## Gotchas d'environnement (ce Mac)
-- **NE JAMAIS `pkill -f "Music Share.app"`** : ça tue l'app installée de
-  l'utilisateur dans /Applications. Cibler uniquement le build de test par son
-  chemin : `pkill -f "Desktop/Music_Share/src-tauri/target/release/…"`.
-- **Accès Desktop (TCC macOS) intermittent** : le shell perd parfois l'accès à
-  `~/Desktop` (`Operation not permitted`). Contournement git : depuis `/tmp`,
-  `export GIT_DIR=".../.git" GIT_WORK_TREE="…"` puis git. Sinon demander à
-  l'utilisateur d'accorder « Accès complet au disque » au terminal.
-- Preview : outils `mcp__Claude_Preview__*` parfois déconnectés → utiliser le
-  Browser pane `mcp__Claude_Browser__*`.
+- **NE JAMAIS `pkill -f "Music Share.app"`** (tue l'app installée) → cibler le build de test par chemin
+  `…/src-tauri/target/release/…`.
+- **Accès `~/Desktop` (TCC) intermittent** → contournement git depuis `/tmp` avec `GIT_DIR`/`GIT_WORK_TREE`.
+- Preview : préférer le **Browser pane** `mcp__Claude_Browser__*`. `web:start` sert un `dist-web/` périmé →
+  config launch **`web-dev`** (Vite HMR) pour vérif live.
 
 ## Utilisateur
-UX (Somfy), francophone. Soigner la simplicité de l'UI. Répondre en français.
-
-## Placeholder animé & collage mobile (fait)
-Dans `ResolverPanel.tsx` — `RotatingPlaceholder` : seul le nom de plateforme
-défile en rouleau (translateY), et la **largeur du slot est mesurée par nom**
-(`useLayoutEffect` + `getBoundingClientRect`, items en `w-max`) puis animée pour
-que « link » glisse au lieu de laisser un blanc fixe. Collage : plus de bouton
-Coller — `pasteFromClipboard()` se déclenche au **tap sur l'input vide**
-(`onClick`, mobile via `navigator.maxTouchPoints>0`) ; impossible au page load
-(geste requis). Vérif live via config launch `web-dev` (Vite HMR, `web:start`
-sert un `dist-web/` **périmé**).
+UX (Somfy), francophone, hands-on (édite lui-même Figma/GitHub). Soigner la simplicité de l'UI.
+**Répondre en français.**
