@@ -376,24 +376,58 @@ function PlatformToggleList({
   return (
     <div className="flex flex-col gap-1.5">
       {ALL_PLATFORMS.map((p) => (
-        <button
-          key={p}
-          onClick={() => toggle(p)}
-          className="flex w-full items-center gap-3 rounded-xl border border-line bg-card px-3.5 py-2 text-left transition hover:bg-card-hover"
-        >
-          <span style={{ color: PLATFORM_COLOR[p] ?? "#a1a1aa" }} className="shrink-0">
-            {PLATFORM_LOGO(p, "h-4.5 w-4.5")}
-          </span>
-          <span className="flex-1 truncate text-[13px] font-medium text-fg">
-            {PLATFORM_NAMES[p]}
-          </span>
-          {/* switch visuel (style Core) ; la ligne entière reste le contrôle
-              cliquable — d'où un span aria-hidden plutôt qu'un <Toggle> */}
-          <span className={`dls-toggle${enabled[p] ? " dls-toggle--on" : ""}`} aria-hidden>
-            <span className="dls-toggle__thumb" />
-          </span>
-        </button>
+        <SettingsRow key={p} platform={p} on={enabled[p]} onToggle={() => toggle(p)} />
       ))}
+    </div>
+  );
+}
+
+/** « Settings row » (Music Share DLS) : logo + nom + switch, toute la ligne
+ *  cliquable. Le switch réutilise le style `.dls-toggle` de Core (span visuel,
+ *  car un <Toggle> — lui-même un <button> — ne peut pas être imbriqué ici). */
+function SettingsRow({ platform, on, onToggle }: { platform: string; on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className="flex w-full items-center gap-3 rounded-xl border border-line bg-card px-3.5 py-2 text-left transition hover:bg-card-hover"
+    >
+      <span style={{ color: PLATFORM_COLOR[platform] ?? "#a1a1aa" }} className="shrink-0">
+        {PLATFORM_LOGO(platform, "h-4.5 w-4.5")}
+      </span>
+      <span className="flex-1 truncate text-[13px] font-medium text-fg">
+        {PLATFORM_NAMES[platform]}
+      </span>
+      <span className={`dls-toggle${on ? " dls-toggle--on" : ""}`} aria-hidden>
+        <span className="dls-toggle__thumb" />
+      </span>
+    </button>
+  );
+}
+
+/** « Card » (Music Share DLS) : pochette + titre/artiste du morceau résolu. */
+function MediaCard({ image, title, artist }: { image?: string; title: string; artist: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-line bg-card p-2.5">
+      {image ? (
+        <img
+          src={image}
+          alt=""
+          className="h-12 w-12 shrink-0 rounded-lg object-cover shadow-lg shadow-black/40"
+          draggable={false}
+        />
+      ) : (
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-subtle text-lg">
+          🎵
+        </div>
+      )}
+      <div className="min-w-0">
+        <p className="truncate text-[13px] font-semibold text-fg" title={title}>
+          {title}
+        </p>
+        <p className="truncate text-[12px] text-muted" title={artist}>
+          {artist}
+        </p>
+      </div>
     </div>
   );
 }
@@ -418,28 +452,7 @@ function Result({
     navigator.maxTouchPoints > 0;
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 rounded-xl border border-line bg-card p-2.5">
-        {result.image ? (
-          <img
-            src={result.image}
-            alt=""
-            className="h-12 w-12 shrink-0 rounded-lg object-cover shadow-lg shadow-black/40"
-            draggable={false}
-          />
-        ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-subtle text-lg">
-            🎵
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold text-fg" title={result.title}>
-            {result.title}
-          </p>
-          <p className="truncate text-[12px] text-muted" title={result.artist}>
-            {result.artist}
-          </p>
-        </div>
-      </div>
+      <MediaCard image={result.image} title={result.title} artist={result.artist} />
 
       <div className="flex flex-col gap-1.5">
         {links.map((link) => (
