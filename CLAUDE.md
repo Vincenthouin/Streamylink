@@ -50,7 +50,7 @@ supports.** Logique + UI partagées ; seules les coquilles diffèrent.
 - **Tokens 3 tiers** (Figma = source de vérité) : Primitives (`number/*` px, `color/*`) → Semantic
   (`surface/text/border` + `radius/size` + `danger`) → Component (`button/control/toggle`). Convention :
   primitives couleurs *hidden*, `number/*` scopés dimensions, sémantique picklable.
-- **Package `dls-core`** (repo `github:Vincenthouin/dls-core`, **v0.4.0**) : `tokens/tokens.css` (CSS vars) +
+- **Package `dls-core`** (repo `github:Vincenthouin/dls-core`, **v0.5.0**) : `tokens/tokens.css` (CSS vars) +
   `tokens/tailwind-preset.cjs` + `tokens.json` ; **composants React portables** (Button, Alert, Input, Toggle,
   IconButton, Loader, Icons — stylés via CSS vars des tokens, **sans Tailwind**, `styles/components.css`). Build **tsup**
   (`prepare` à l'install). **`gallery.html`** = référence visuelle vivante (tous composants × états, liée aux vrais
@@ -63,8 +63,11 @@ supports.** Logique + UI partagées ; seules les coquilles diffèrent.
   `<IconButton>` engrenage/copie, `<Button>` Continue/Copy all/Share, `<Alert>` erreur, `<Loader>` chargement, `<Toggle>`/Icons) — vaut pour
   **les 2 coquilles** (UI partagée). Le switch des lignes plateformes reste app-spécifique (« settings row ») mais
   réutilise le **style** `.dls-toggle`.
-- **Régénérer les tokens** après changement Figma : relire les variables Figma → régénérer
-  `dls-core/tokens/*` → push `dls-core` → `npm update dls-core` dans l'app.
+- **Pipeline de tokens (automatisé, repris du POC `somfy-tokens-poc`)** : source de vérité =
+  `dls-core/tokens/design-tokens.json` (W3C) ; `tokens.css`+`tokens.json` **générés** par
+  `scripts/build-tokens.mjs` (`npm run tokens:build`, aussi via `prepare`). CI dls-core valide + bloque la dérive.
+  Édition Figma → plugin `Token-Plugin-Editor` ouvre une PR (voir `dls-core/TOKENS-SYNC.md` : le plugin
+  reste à généraliser pour DLS Core — 3 collections, layer = collection, mode unique). Puis `npm update dls-core`.
 - **Code Connect indisponible** (exige Figma Org/Enterprise + siège Dev ; compte perso = Éducation).
 - **Fait** : extraction Input/Toggle/IconButton/Icons/**Loader** dans `dls-core` (patron : composant React portable,
   CSS vars, sans Tailwind, + `styles/components.css`) ; **`ResolverPanel` branché** dessus (web + Tauri) ; galerie ajoutée.
