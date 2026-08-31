@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Typecheck + builds (web + Tauri webview)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # dls-core est une dép git avec un `prepare` (tokens:build + tsup) qui
+      # s'exécute à l'install → vérifie aussi que le design system compile.
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build web
+        run: npm run web:build
+
+      - name: Build Tauri webview bundle
+        run: npm run tauri:web:build

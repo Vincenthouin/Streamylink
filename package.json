@@ -21,7 +21,8 @@
     "tauri:build": "tauri build",
     "tauri:app": "tauri build --bundles app",
     "tauri:dmg": "tauri build --bundles app && bash scripts/make-dmg.sh",
-    "tauri:release": "tauri build --bundles app && bash scripts/make-release.sh"
+    "tauri:release": "tauri build --bundles app && bash scripts/make-release.sh",
+    "release:desktop": "bash scripts/release-desktop.sh"
   },
   "keywords": [],
   "author": "UX Team",
