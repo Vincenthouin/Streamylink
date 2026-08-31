@@ -6,8 +6,19 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PlatformLink, ResolveResponse, ResolveResult } from "../shared/types";
+import {
+  Alert,
+  Button,
+  CheckIcon,
+  CloseIcon,
+  CopyIcon,
+  IconButton,
+  Input,
+  SettingsIcon,
+  ShareIcon,
+} from "dls-core";
 import { BONUS_PLATFORMS, MAIN_PLATFORMS, PLATFORM_NAMES } from "../shared/platforms";
-import { CheckIcon, CopyIcon, PLATFORM_COLOR, PLATFORM_LOGO } from "./logos";
+import { PLATFORM_COLOR, PLATFORM_LOGO } from "./logos";
 import {
   hasStoredSettings,
   loadSettings,
@@ -150,14 +161,15 @@ export function ResolverPanel({
     <div className="flex flex-col gap-3 p-3 text-fg antialiased">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <input
+          <Input
             ref={inputRef}
-            type="text"
             value={input}
             spellCheck={false}
             autoFocus
-            placeholder=""
             aria-label="Paste a Spotify, Apple Music, Deezer or Qobuz link"
+            // garde l'alignement du placeholder animé (14px) et laisse la place
+            // au bouton « effacer » (32px) à droite
+            style={{ paddingLeft: "0.875rem", paddingRight: "2rem" }}
             onChange={(e) => {
               const v = e.target.value;
               setInput(v);
@@ -175,7 +187,6 @@ export function ResolverPanel({
               if (!input && canPaste) pasteFromClipboard();
             }}
             onKeyDown={(e) => e.key === "Enter" && resolve(input)}
-            className="w-full rounded-xl border border-line bg-card py-2.5 pl-3.5 pr-8 text-[13px] text-fg placeholder-faint outline-none transition focus:border-line-selected focus:bg-card-hover"
           />
           {!input && <RotatingPlaceholder rightGap={false} />}
           {input ? (
@@ -188,30 +199,20 @@ export function ResolverPanel({
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-faint hover:bg-subtle hover:text-fg"
               title="Clear"
             >
-              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
+              <CloseIcon size={12} />
             </button>
           ) : null}
         </div>
-        <button
+        <IconButton
+          shape="square"
+          size="m"
+          active={showSettings}
           onClick={() => setShowSettings((v) => !v)}
-          className={`shrink-0 rounded-xl p-2.5 transition ${
-            showSettings ? "bg-subtle text-fg" : "text-muted hover:bg-subtle hover:text-fg"
-          }`}
+          aria-label={showSettings ? "Close settings" : "Settings"}
           title={showSettings ? "Close settings" : "Settings"}
         >
-          {showSettings ? (
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          )}
-        </button>
+          {showSettings ? <CloseIcon size={20} /> : <SettingsIcon size={20} />}
+        </IconButton>
       </div>
 
       {showSettings ? (
@@ -233,12 +234,9 @@ export function ResolverPanel({
             </p>
           </div>
           <PlatformToggleList enabled={enabled} setEnabled={setEnabled} />
-          <button
-            onClick={finishOnboarding}
-            className="rounded-xl bg-inverse py-2.5 text-[13px] font-semibold text-on-inverse transition hover:opacity-90"
-          >
+          <Button variant="primary" onClick={finishOnboarding}>
             Continue
-          </button>
+          </Button>
         </div>
       ) : (
         <>
@@ -248,11 +246,7 @@ export function ResolverPanel({
             </div>
           )}
 
-          {state.status === "error" && (
-            <div className="rounded-xl border border-line-danger bg-danger-surface px-3.5 py-2.5 text-[13px] leading-relaxed text-danger">
-              {state.message}
-            </div>
-          )}
+          {state.status === "error" && <Alert tone="danger">{state.message}</Alert>}
 
           {state.status === "done" && (
             <Result result={state.result} enabled={enabled} copyRich={copyRich} />
@@ -390,16 +384,10 @@ function PlatformToggleList({
           <span className="flex-1 truncate text-[13px] font-medium text-fg">
             {PLATFORM_NAMES[p]}
           </span>
-          <span
-            className={`relative h-5 w-9 shrink-0 rounded-full transition ${
-              enabled[p] ? "bg-accent-solid" : "bg-subtle"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-4 w-4 rounded-full bg-inverse shadow transition-all ${
-                enabled[p] ? "left-[18px]" : "left-0.5"
-              }`}
-            />
+          {/* switch visuel (style Core) ; la ligne entière reste le contrôle
+              cliquable — d'où un span aria-hidden plutôt qu'un <Toggle> */}
+          <span className={`dls-toggle${enabled[p] ? " dls-toggle--on" : ""}`} aria-hidden>
+            <span className="dls-toggle__thumb" />
           </span>
         </button>
       ))}
@@ -521,15 +509,17 @@ function PlatformRow({ link }: { link: PlatformLink }) {
           </span>
         )}
       </a>
-      <button
+      <IconButton
+        shape="square"
+        size="s"
         onClick={() => copy(link.url)}
-        className={`shrink-0 rounded-lg p-2 transition ${
-          copied ? "text-accent" : "text-faint hover:bg-subtle hover:text-fg"
-        }`}
         title="Copy link"
+        aria-label="Copy link"
+        // état « copié » : accent persistant (inline pour primer sur .dls-icon-btn)
+        style={copied ? { color: "var(--text-accent)" } : undefined}
       >
-        {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
-      </button>
+        {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+      </IconButton>
     </div>
   );
 }
@@ -572,17 +562,9 @@ function ShareButton({
     }
   };
   return (
-    <button
-      onClick={onShare}
-      className="flex items-center justify-center gap-2 rounded-xl bg-inverse py-2.5 text-[13px] font-semibold text-on-inverse transition hover:opacity-90"
-    >
-      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-        <polyline points="16 6 12 2 8 6" />
-        <line x1="12" y1="2" x2="12" y2="15" />
-      </svg>
+    <Button variant="primary" onClick={onShare} icon={<ShareIcon size={16} />}>
       Share
-    </button>
+    </Button>
   );
 }
 
@@ -679,18 +661,13 @@ function CopyAllButton({
     timer.current = setTimeout(() => setCopied(false), 1500);
   };
 
-  const base = copied
-    ? "bg-subtle text-accent"
-    : secondary
-      ? "border border-line bg-subtle text-fg hover:bg-card-hover"
-      : "bg-inverse text-on-inverse hover:opacity-90";
-
   return (
-    <button
+    <Button
+      variant={secondary ? "secondary" : "primary"}
+      state={copied ? "success" : "default"}
       onClick={onClick}
-      className={`rounded-xl py-2.5 text-[13px] font-semibold transition ${base}`}
     >
       {copied ? "Message copied!" : "Copy all"}
-    </button>
+    </Button>
   );
 }

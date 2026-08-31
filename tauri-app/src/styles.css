@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "dls-core/tokens.css";
+@import "dls-core/components.css";
 @import "../../src/ui/theme.css";
 
 /* l'UI partagée vit hors de la racine Vite, on l'indique à Tailwind */
