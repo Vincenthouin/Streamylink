@@ -8,7 +8,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { PlatformLink, ResolveResponse, ResolveResult } from "../shared/types";
 import {
   Alert,
+  Badge,
   Button,
+  Chip,
   CheckIcon,
   CloseIcon,
   CopyIcon,
@@ -504,11 +506,7 @@ function PlatformRow({ link }: { link: PlatformLink }) {
           {PLATFORM_LOGO(link.platform, "h-4.5 w-4.5")}
         </span>
         <span className="truncate text-[13px] font-medium text-fg">{link.name}</span>
-        {link.kind === "search" && (
-          <span className="shrink-0 rounded-full border border-line bg-subtle px-2 py-0.5 text-[10px] text-muted">
-            search
-          </span>
-        )}
+        {link.kind === "search" && <Badge className="shrink-0">search</Badge>}
       </a>
       <IconButton
         shape="square"
@@ -528,17 +526,13 @@ function PlatformRow({ link }: { link: PlatformLink }) {
 function BonusChip({ link }: { link: PlatformLink }) {
   const [copied, copy] = useCopy();
   return (
-    <button
+    <Chip
+      state={copied ? "copied" : "default"}
       onClick={() => copy(link.url)}
-      className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
-        copied
-          ? "border-line-selected bg-card text-accent"
-          : "border-line bg-card text-muted hover:border-line-selected hover:text-fg"
-      }`}
       title={`Copy ${link.name} link`}
     >
       {copied ? "copied!" : link.name}
-    </button>
+    </Chip>
   );
 }
 
