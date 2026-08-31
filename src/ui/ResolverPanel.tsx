@@ -14,6 +14,7 @@ import {
   CopyIcon,
   IconButton,
   Input,
+  Loader,
   SettingsIcon,
   ShareIcon,
 } from "dls-core";
@@ -242,7 +243,7 @@ export function ResolverPanel({
         <>
           {state.status === "loading" && (
             <div className="flex justify-center py-4">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-fg" />
+              <Loader />
             </div>
           )}
 

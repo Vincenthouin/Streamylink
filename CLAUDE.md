@@ -50,9 +50,9 @@ supports.** Logique + UI partagées ; seules les coquilles diffèrent.
 - **Tokens 3 tiers** (Figma = source de vérité) : Primitives (`number/*` px, `color/*`) → Semantic
   (`surface/text/border` + `radius/size` + `danger`) → Component (`button/control/toggle`). Convention :
   primitives couleurs *hidden*, `number/*` scopés dimensions, sémantique picklable.
-- **Package `dls-core`** (repo `github:Vincenthouin/dls-core`, **v0.3.2**) : `tokens/tokens.css` (CSS vars) +
+- **Package `dls-core`** (repo `github:Vincenthouin/dls-core`, **v0.4.0**) : `tokens/tokens.css` (CSS vars) +
   `tokens/tailwind-preset.cjs` + `tokens.json` ; **composants React portables** (Button, Alert, Input, Toggle,
-  IconButton, Icons — stylés via CSS vars des tokens, **sans Tailwind**, `styles/components.css`). Build **tsup**
+  IconButton, Loader, Icons — stylés via CSS vars des tokens, **sans Tailwind**, `styles/components.css`). Build **tsup**
   (`prepare` à l'install). **`gallery.html`** = référence visuelle vivante (tous composants × états, liée aux vrais
   `tokens.css`+`components.css` → reflète toujours ce qui ship ; servir en HTTP local pour les états hover/focus).
   Décision DS : **pas d'état « invalid » sur Input** — une erreur = `<Alert tone="danger">` sous le champ.
@@ -60,14 +60,16 @@ supports.** Logique + UI partagées ; seules les coquilles diffèrent.
   `web/src/styles.css` + `tauri-app/src/styles.css` importent `dls-core/tokens.css` + **`dls-core/components.css`** +
   `src/ui/theme.css` (mapping **Tailwind v4 `@theme`** → utilitaires `bg-card/text-fg/text-muted/border-line/rounded-md/text-accent/text-danger`).
   Classes migrées dans `ResolverPanel` + web `App.tsx`. **`ResolverPanel` branché sur les composants** (`<Input>`,
-  `<IconButton>` engrenage/copie, `<Button>` Continue/Copy all/Share, `<Alert>` erreur, `<Toggle>`/Icons) — vaut pour
+  `<IconButton>` engrenage/copie, `<Button>` Continue/Copy all/Share, `<Alert>` erreur, `<Loader>` chargement, `<Toggle>`/Icons) — vaut pour
   **les 2 coquilles** (UI partagée). Le switch des lignes plateformes reste app-spécifique (« settings row ») mais
   réutilise le **style** `.dls-toggle`.
 - **Régénérer les tokens** après changement Figma : relire les variables Figma → régénérer
   `dls-core/tokens/*` → push `dls-core` → `npm update dls-core` dans l'app.
 - **Code Connect indisponible** (exige Figma Org/Enterprise + siège Dev ; compte perso = Éducation).
-- **Fait** : extraction Input/Toggle/IconButton/Icons dans `dls-core` (patron : composant React portable, CSS vars,
-  sans Tailwind, + `styles/components.css`) ; **`ResolverPanel` branché** dessus (web + Tauri) ; galerie ajoutée.
+- **Fait** : extraction Input/Toggle/IconButton/Icons/**Loader** dans `dls-core` (patron : composant React portable,
+  CSS vars, sans Tailwind, + `styles/components.css`) ; **`ResolverPanel` branché** dessus (web + Tauri) ; galerie ajoutée.
+  **Loader** créé aussi dans Figma Core (page « Loader » : anneau + arc, tokens `loader/*` dans la collection Component ;
+  arc = secteur d'anneau `arcData`+`innerRadius`, PAS `dashPattern` qui multiplie les segments).
   _(Antérieur : Button `State` Default/Success/Disabled + `Alert` publiés dans Core ; Alert sur l'écran Error.)_
 - **À faire** : merger/déployer la branche `feat/dls-core-tokens` quand prêt (déploiement web = push `main`, cf.
   section desktop pour le release Tauri). Extraction restante possible : Badge, Chip (déjà dans Figma Core).
