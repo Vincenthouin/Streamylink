@@ -85,6 +85,6 @@
     "@tauri-apps/plugin-opener": "^2.5.4",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
-    "dls-core": "github:Vincenthouin/dls-core"
+    "dls-core": "github:Vincenthouin/dls-core#redesign"
   }
 }
