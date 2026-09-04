@@ -121,7 +121,7 @@ function decodeHtmlEntities(s: string): string {
 
 // ─── Détection de la plateforme d'entrée ─────────────────────────────
 
-type SourcePlatform = "qobuz" | "spotify" | "appleMusic" | "deezer";
+type SourcePlatform = "qobuz" | "spotify" | "appleMusic" | "deezer" | "youtube";
 
 function detectPlatform(url: string): SourcePlatform {
   let host: string;
@@ -137,8 +137,12 @@ function detectPlatform(url: string): SourcePlatform {
   if (/(^|\.)deezer\.com$/.test(host) || /(^|\.)(deezer|dzr)\.page\.link$/.test(host)) {
     return "deezer";
   }
+  // youtube.com, music.youtube.com, m.youtube.com, youtu.be, youtube-nocookie.com
+  if (/(^|\.)youtube\.com$/.test(host) || /(^|\.)youtu\.be$/.test(host) || /(^|\.)youtube-nocookie\.com$/.test(host)) {
+    return "youtube";
+  }
   throw new ResolveError(
-    "Unrecognized platform — paste a Qobuz, Spotify, Apple Music or Deezer link.",
+    "Unrecognized platform — paste a Qobuz, Spotify, Apple Music, Deezer or YouTube link.",
   );
 }
 
@@ -301,6 +305,89 @@ function toDeezerTrack(data: any): DeezerTrack {
   };
 }
 
+// ─── YouTube (oEmbed, pas d'ISRC → résolution par recherche texte) ───
+
+/** Extrait l'ID de vidéo d'une URL YouTube (watch, youtu.be, shorts, embed,
+ *  music.youtube.com). */
+function youtubeVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
+    if (u.pathname === "/watch") return u.searchParams.get("v");
+    const m = u.pathname.match(/^\/(?:shorts|embed|v)\/([^/?#]+)/);
+    if (m) return m[1];
+  } catch {
+    /* URL invalide : géré en amont */
+  }
+  return null;
+}
+
+// bruit courant dans les titres de clips : « (Official Video) », « [Lyric
+// Video] », « (Audio) », « (Visualizer) », etc. On ne retire QUE ce qui est
+// entre parenthèses/crochets et contient un de ces mots-clés — un titre comme
+// « Video Games » (sans parenthèses) n'est pas touché.
+// On ne retire QUE le bruit de format (même morceau) : « (Official Video) »,
+// « [Lyrics] », « (Audio) », « (Visualizer) », « (HD/4K) »… On NE touche PAS aux
+// variantes sémantiques — (… Remix), (Live), (Acoustic), (Cover), (Sped Up)… —
+// qui sont un AUTRE enregistrement : elles restent dans la recherche, et si la
+// variante exacte n'existe pas sur les plateformes on préfère « pas trouvé »
+// plutôt qu'un mauvais morceau (l'original).
+const YT_NOISE =
+  /\s*[([【][^)\]】]*\b(official|lyrics?|audio|video|visuali[sz]er|clip|mv|hd|4k|remaster(?:ed)?|explicit|prod\.?)\b[^)\]】]*[)\]】]/gi;
+
+function cleanTitlePart(s: string): string {
+  return s
+    .replace(YT_NOISE, "")
+    .replace(/\s*[|｜].*$/, "") // « … | Label / Records »
+    .replace(/\s*[([]?\s*(?:feat|ft|featuring)\b\.?.*$/i, "") // « … ft. X » / « (feat. X) »
+    .replace(/\s*[-–—]?\s*(official\s+(?:music\s+)?video|lyrics?(?:\s+video)?|audio|visuali[sz]er)\s*$/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function cleanArtist(author: string): string {
+  return author
+    .replace(/\s*[-–—]\s*topic\s*$/i, "") // chaînes auto « Artiste - Topic »
+    .replace(/vevo\s*$/i, "")
+    .replace(/\s*official\s*$/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/** Déduit { artiste, titre } d'un titre de vidéo + nom de chaîne. « Artiste -
+ *  Titre » quand il y a un séparateur ; sinon la chaîne fait l'artiste (fiable
+ *  pour les chaînes « - Topic » et VEVO). Best-effort : les titres YouTube sont
+ *  hétérogènes. */
+function parseYouTubeTitle(rawTitle: string, author: string): { title: string; artist: string } {
+  const cleaned = cleanTitlePart(rawTitle);
+  const dash = cleaned.match(/^(.+?)\s+[-–—]\s+(.+)$/);
+  if (dash) return { artist: cleanTitlePart(dash[1]), title: cleanTitlePart(dash[2]) };
+  return { artist: cleanArtist(author), title: cleaned };
+}
+
+/** Métadonnées d'un lien YouTube via l'API oEmbed (publique, sans clé). Pas
+ *  d'ISRC → la résolution des équivalents se fera par recherche texte. */
+async function getYouTubeTrackInfo(url: string): Promise<TrackInfo> {
+  const id = youtubeVideoId(url);
+  const res = await get(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+  if (!res.ok) {
+    throw new ResolveError(
+      res.status === 401 || res.status === 404
+        ? "This YouTube video is private or unavailable."
+        : `YouTube responded ${res.status} — invalid link?`,
+    );
+  }
+  const data = (await res.json()) as { title?: string; author_name?: string; thumbnail_url?: string };
+  if (!data.title) throw new ResolveError("Couldn't read this YouTube video's info.");
+  const { title, artist } = parseYouTubeTitle(data.title, data.author_name ?? "");
+  if (!title || !artist) {
+    throw new ResolveError("Couldn't identify a track from this YouTube link.");
+  }
+  const image = id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : data.thumbnail_url;
+  return { title, artist, image };
+}
+
 /** ISRC exact d'abord, puis recherche stricte, puis souple. Les tracks
  *  retirés du catalogue (readable: false) sont ignorés car Odesli ne
  *  peut pas les résoudre. */
@@ -316,10 +403,35 @@ async function findDeezer(info: TrackInfo): Promise<DeezerTrack | null> {
   ];
   for (const q of queries) {
     const data = await deezerJson(`https://api.deezer.com/search?q=${encodeURIComponent(q)}`);
-    const hit = data?.data?.find((t: any) => t.readable !== false);
+    // score artiste+titre (comme iTunes) : sans ISRC, la recherche texte peut
+    // renvoyer un morceau sans rapport (surtout pour un lien YouTube non
+    // musical) → on exige une vraie correspondance plutôt que le 1er hit.
+    const hit = bestDeezerTrack(data?.data ?? [], info);
     if (hit) return toDeezerTrack(hit);
   }
   return null;
+}
+
+/** Meilleur résultat Deezer par score artiste+titre, ou null si aucun ne
+ *  correspond vraiment (score < 2). Même logique que `bestItunesTrack`. */
+function bestDeezerTrack(results: any[], info: TrackInfo): any | null {
+  const nArtist = normalize(info.artist);
+  const nTitle = normalize(info.title);
+  const scored = results
+    .filter((t) => t.readable !== false)
+    .map((t) => {
+      const a = normalize(t.artist?.name ?? "");
+      const ti = normalize(t.title ?? "");
+      let score = 0;
+      if (a === nArtist) score += 2;
+      else if (a.includes(nArtist) || nArtist.includes(a)) score += 1;
+      if (ti === nTitle) score += 2;
+      else if (ti.startsWith(nTitle) || nTitle.startsWith(ti)) score += 1;
+      return { t, score };
+    })
+    .sort((x, y) => y.score - x.score);
+  const best = scored[0];
+  return best && best.score >= 2 ? best.t : null;
 }
 
 // ─── Résolution Apple Music (iTunes Search API) ──────────────────────
@@ -456,6 +568,9 @@ export async function resolveLink(rawUrl: string, qobuzInfo?: TrackInfo): Promis
       appleUrl = r.appleUrl;
       break;
     }
+    case "youtube":
+      info = await getYouTubeTrackInfo(url);
+      break;
   }
 
   // Deezer d'abord : son album (UPC) sert de fallback à la résolution Apple Music
@@ -469,10 +584,19 @@ export async function resolveLink(rawUrl: string, qobuzInfo?: TrackInfo): Promis
     if (u) links.push({ platform: platformId, name, url: u, kind });
   };
 
+  // Spotify / Qobuz : pas d'API sans clé → toujours un lien de RECHERCHE (on ne
+  // peut pas confirmer la présence du morceau), sauf quand c'est la source.
   push("spotify", "Spotify", platform === "spotify" ? url : spotifySearchUrl(info), platform === "spotify" ? "direct" : "search");
-  push("appleMusic", "Apple Music", appleUrl, "direct");
-  push("deezer", "Deezer", deezer?.link ?? null, "direct");
+  // Deezer / Apple : vérifiables via API → direct si trouvé, sinon « introuvable »
+  // (kind notfound, url vide) plutôt que d'omettre la ligne — on assume l'absence.
+  const status = (id: string, name: string, u: string | null) =>
+    links.push(u ? { platform: id, name, url: u, kind: "direct" } : { platform: id, name, url: "", kind: "notfound" });
+  status("appleMusic", "Apple Music", appleUrl);
+  status("deezer", "Deezer", deezer?.link ?? null);
   push("qobuz", "Qobuz", platform === "qobuz" ? url : qobuzSearchUrl(info), platform === "qobuz" ? "direct" : "search");
+  // lien YouTube d'origine (quand c'est la source) — YouTube est une plateforme
+  // « bonus » côté réglages ; l'utilisateur le voit s'il l'a activé
+  if (platform === "youtube") push("youtube", PLATFORM_NAMES.youtube ?? "YouTube", url, "direct");
 
   return {
     title: info.title,

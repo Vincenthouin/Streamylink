@@ -9,8 +9,10 @@ export interface PlatformLink {
   platform: PlatformId;
   name: string;
   url: string;
-  /** "direct" = lien vers le morceau exact, "search" = lien de recherche */
-  kind: "direct" | "search";
+  /** "direct" = lien vers le morceau exact ; "search" = lien de recherche
+   *  (Spotify/Qobuz, pas d'API pour confirmer) ; "notfound" = plateforme
+   *  vérifiable (Deezer/Apple) où le morceau exact est absent (url vide). */
+  kind: "direct" | "search" | "notfound";
 }
 
 export interface ResolveResult {
