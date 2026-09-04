@@ -327,8 +327,14 @@ function youtubeVideoId(url: string): string | null {
 // Video] », « (Audio) », « (Visualizer) », etc. On ne retire QUE ce qui est
 // entre parenthèses/crochets et contient un de ces mots-clés — un titre comme
 // « Video Games » (sans parenthèses) n'est pas touché.
+// On ne retire QUE le bruit de format (même morceau) : « (Official Video) »,
+// « [Lyrics] », « (Audio) », « (Visualizer) », « (HD/4K) »… On NE touche PAS aux
+// variantes sémantiques — (… Remix), (Live), (Acoustic), (Cover), (Sped Up)… —
+// qui sont un AUTRE enregistrement : elles restent dans la recherche, et si la
+// variante exacte n'existe pas sur les plateformes on préfère « pas trouvé »
+// plutôt qu'un mauvais morceau (l'original).
 const YT_NOISE =
-  /\s*[([【][^)\]】]*\b(official|lyrics?|audio|video|visuali[sz]er|clip|mv|hd|4k|remaster(?:ed)?|explicit|prod\.?|remix|re-?edit|edit|mix|live|acoustic|unplugged|cover|mashup|bootleg|instrumental|sped\s?-?up|slowed|reverb|extended|vip|flip|rework|nightcore)\b[^)\]】]*[)\]】]/gi;
+  /\s*[([【][^)\]】]*\b(official|lyrics?|audio|video|visuali[sz]er|clip|mv|hd|4k|remaster(?:ed)?|explicit|prod\.?)\b[^)\]】]*[)\]】]/gi;
 
 function cleanTitlePart(s: string): string {
   return s
