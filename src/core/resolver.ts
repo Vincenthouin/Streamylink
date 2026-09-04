@@ -422,6 +422,7 @@ function bestDeezerTrack(results: any[], info: TrackInfo): any | null {
     .map((t) => {
       const a = normalize(t.artist?.name ?? "");
       const ti = normalize(t.title ?? "");
+      if (variantMismatch(nTitle, ti)) return { t, score: -1 };
       let score = 0;
       if (a === nArtist) score += 2;
       else if (a.includes(nArtist) || nArtist.includes(a)) score += 1;
@@ -445,6 +446,18 @@ function normalize(s: string): string {
     .trim();
 }
 
+// Un remix / live / acoustic… est un AUTRE enregistrement. Si le titre recherché
+// contient un de ces mots-clés que le candidat n'a pas (ou un différent), ce
+// n'est pas le même morceau : on ne veut pas renvoyer l'original pour un remix
+// (ni l'inverse). `normalize` a déjà retiré la ponctuation → mots isolés.
+const VARIANT_RE =
+  /\b(remix|live|acoustic|unplugged|cover|mashup|bootleg|instrumental|sped|slowed|nightcore|vip|flip|rework|edit)\b/;
+function variantMismatch(wantedTitle: string, candidateTitle: string): boolean {
+  const w = wantedTitle.match(VARIANT_RE)?.[0];
+  const c = candidateTitle.match(VARIANT_RE)?.[0];
+  return w !== c;
+}
+
 const ITUNES_COUNTRIES = ["FR", "US"];
 
 function bestItunesTrack(results: any[], info: TrackInfo): string | null {
@@ -455,6 +468,7 @@ function bestItunesTrack(results: any[], info: TrackInfo): string | null {
     .map((r) => {
       const a = normalize(r.artistName ?? "");
       const t = normalize(r.trackName ?? "");
+      if (variantMismatch(nTitle, t)) return { r, score: -1 };
       let score = 0;
       if (a === nArtist) score += 2;
       else if (a.includes(nArtist) || nArtist.includes(a)) score += 1;
