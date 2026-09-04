@@ -584,9 +584,15 @@ export async function resolveLink(rawUrl: string, qobuzInfo?: TrackInfo): Promis
     if (u) links.push({ platform: platformId, name, url: u, kind });
   };
 
+  // Spotify / Qobuz : pas d'API sans clé → toujours un lien de RECHERCHE (on ne
+  // peut pas confirmer la présence du morceau), sauf quand c'est la source.
   push("spotify", "Spotify", platform === "spotify" ? url : spotifySearchUrl(info), platform === "spotify" ? "direct" : "search");
-  push("appleMusic", "Apple Music", appleUrl, "direct");
-  push("deezer", "Deezer", deezer?.link ?? null, "direct");
+  // Deezer / Apple : vérifiables via API → direct si trouvé, sinon « introuvable »
+  // (kind notfound, url vide) plutôt que d'omettre la ligne — on assume l'absence.
+  const status = (id: string, name: string, u: string | null) =>
+    links.push(u ? { platform: id, name, url: u, kind: "direct" } : { platform: id, name, url: "", kind: "notfound" });
+  status("appleMusic", "Apple Music", appleUrl);
+  status("deezer", "Deezer", deezer?.link ?? null);
   push("qobuz", "Qobuz", platform === "qobuz" ? url : qobuzSearchUrl(info), platform === "qobuz" ? "direct" : "search");
   // lien YouTube d'origine (quand c'est la source) — YouTube est une plateforme
   // « bonus » côté réglages ; l'utilisateur le voit s'il l'a activé

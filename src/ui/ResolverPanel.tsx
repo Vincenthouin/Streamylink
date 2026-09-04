@@ -443,6 +443,8 @@ function Result({
 }) {
   const links = result.links.filter((l) => enabled[l.platform]);
   const bonus = result.bonus.filter((l) => enabled[l.platform]);
+  // les plateformes « introuvables » (url vide) ne partent pas dans Copy all / Share
+  const shareLinks = links.filter((l) => l.kind !== "notfound");
   // Partage natif réservé au mobile (tactile) : sur desktop web il n'apporte
   // pas grand-chose → on masque « Share » et « Copy all » redevient le bouton
   // primaire.
@@ -474,10 +476,10 @@ function Result({
         </p>
       ) : (
         <div className="flex flex-col gap-2">
-          {canShare && <ShareButton result={result} links={links} bonus={bonus} />}
+          {canShare && <ShareButton result={result} links={shareLinks} bonus={bonus} />}
           <CopyAllButton
             result={result}
-            links={links}
+            links={shareLinks}
             bonus={bonus}
             copyRich={copyRich}
             secondary={canShare}
@@ -505,6 +507,20 @@ function PlatformRow({ link }: { link: PlatformLink }) {
   const [copied, copy] = useCopy();
   const color = PLATFORM_COLOR[link.platform] ?? "#a1a1aa";
   const isWeb = /^https?:/i.test(link.url);
+
+  // Plateforme vérifiable (Deezer/Apple) où le morceau exact est absent :
+  // ligne grisée, non cliquable, sans copie — on assume « introuvable ».
+  if (link.kind === "notfound") {
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-line bg-card px-3.5 py-2.5 opacity-55">
+        <span style={{ color }} className="shrink-0 grayscale">
+          {PLATFORM_LOGO(link.platform, "h-4.5 w-4.5")}
+        </span>
+        <span className="flex-1 truncate text-[13px] font-medium text-muted">{link.name}</span>
+        <span className="shrink-0 text-[11px] text-faint">Not found</span>
+      </div>
+    );
+  }
 
   return (
     <div className="group flex items-center gap-3 rounded-xl border border-line bg-card py-1.5 pl-3.5 pr-1.5 transition hover:bg-card-hover">
