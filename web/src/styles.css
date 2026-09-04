@@ -14,10 +14,7 @@ body {
   max-width: 100%;
 }
 
-/* iOS Safari zoome sur les champs dont la police fait < 16px ; on force 16px
-   sur le web pour éviter le zoom au focus (le desktop garde sa taille).
-   Le placeholder animé (.rotating-ph) s'aligne sur la même taille. */
-input,
-.rotating-ph {
-  font-size: 16px !important;
-}
+/* Anti-zoom iOS (champs < 16px) : géré par le variant DS `Input platform="mobile"`
+   (.dls-input--mobile = 16px) et le placeholder `.rotating-ph`, pilotés par
+   usePlatform() dans ResolverPanel. Plus de hack `!important` global ici :
+   le desktop garde 13px (parité Figma), le mobile passe à 16px. */

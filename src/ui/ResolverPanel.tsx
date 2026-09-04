@@ -22,6 +22,8 @@ import {
 } from "dls-core";
 import { BONUS_PLATFORMS, MAIN_PLATFORMS, PLATFORM_NAMES } from "../shared/platforms";
 import { PLATFORM_COLOR, PLATFORM_LOGO } from "./logos";
+import { usePlatform, PlatformProvider, usePlatformContext } from "./usePlatform";
+import { ListItem } from "./ListItem";
 import {
   hasStoredSettings,
   loadSettings,
@@ -70,6 +72,8 @@ export function ResolverPanel({
   const [stored, setStored] = useState(hasStoredSettings);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const requestId = useRef(0);
+  // plateforme DS (desktop/mobile) : diffusée à toute l'UI partagée via contexte
+  const platform = usePlatform();
 
   useEffect(() => {
     if (stored) saveSettings(enabled);
@@ -161,12 +165,14 @@ export function ResolverPanel({
   const onboarding = pendingUrl !== null;
 
   return (
+    <PlatformProvider value={platform}>
     <div className="flex flex-col gap-3 p-3 text-fg antialiased">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Input
             ref={inputRef}
             value={input}
+            platform={platform}
             spellCheck={false}
             autoFocus
             aria-label="Paste a Spotify, Apple Music, Deezer, Qobuz or YouTube link"
@@ -208,7 +214,7 @@ export function ResolverPanel({
         </div>
         <IconButton
           shape="square"
-          size="m"
+          platform={platform}
           active={showSettings}
           onClick={() => setShowSettings((v) => !v)}
           aria-label={showSettings ? "Close settings" : "Settings"}
@@ -237,7 +243,7 @@ export function ResolverPanel({
             </p>
           </div>
           <PlatformToggleList enabled={enabled} setEnabled={setEnabled} />
-          <Button variant="primary" onClick={finishOnboarding}>
+          <Button variant="primary" platform={platform} onClick={finishOnboarding}>
             Continue
           </Button>
         </div>
@@ -257,6 +263,7 @@ export function ResolverPanel({
         </>
       )}
     </div>
+    </PlatformProvider>
   );
 }
 
@@ -265,6 +272,8 @@ export function ResolverPanel({
 const PLATFORM_PROMPTS = ["Spotify", "Apple Music", "Deezer", "Qobuz", "YouTube", "Amazon Music", "Tidal"];
 
 function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
+  // suit la taille de l'Input (mobile 16px anti-zoom iOS / desktop 13px)
+  const platform = usePlatformContext();
   const [i, setI] = useState(0);
   const [animate, setAnimate] = useState(true);
   const itemRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -328,9 +337,9 @@ function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
   return (
     <div
       aria-hidden
-      className={`rotating-ph pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 items-center overflow-hidden whitespace-nowrap text-[13px] text-faint ${
-        rightGap ? "right-[68px]" : "right-8"
-      }`}
+      className={`rotating-ph pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 items-center overflow-hidden whitespace-nowrap text-faint ${
+        platform === "mobile" ? "text-[16px]" : "text-[13px]"
+      } ${rightGap ? "right-[68px]" : "right-8"}`}
     >
       Paste your&nbsp;
       {/* seul le nom de plateforme défile verticalement ; sa largeur s'anime
@@ -386,13 +395,17 @@ function PlatformToggleList({
  *  cliquable. Le switch réutilise le style `.dls-toggle` de Core (span visuel,
  *  car un <Toggle> — lui-même un <button> — ne peut pas être imbriqué ici). */
 function SettingsRow({ platform, on, onToggle }: { platform: string; on: boolean; onToggle: () => void }) {
+  // `platform` = id de la plateforme musicale ; la plateforme DS (desktop/mobile)
+  // vient du contexte → hauteur 48/56 (parité Figma « Settings row »).
+  const dsPlatform = usePlatformContext();
+  const minH = dsPlatform === "mobile" ? "min-h-14" : "min-h-12";
   return (
     <button
       onClick={onToggle}
-      className="flex w-full items-center gap-3 rounded-xl border border-line bg-card px-3.5 py-2 text-left transition hover:bg-card-hover"
+      className={`flex w-full items-center gap-3 rounded-xl border border-line bg-card px-3.5 text-left transition hover:bg-card-hover ${minH}`}
     >
       <span style={{ color: PLATFORM_COLOR[platform] ?? "#a1a1aa" }} className="shrink-0">
-        {PLATFORM_LOGO(platform, "h-4.5 w-4.5")}
+        {PLATFORM_LOGO(platform, "h-6 w-6")}
       </span>
       <span className="flex-1 truncate text-[13px] font-medium text-fg">
         {PLATFORM_NAMES[platform]}
@@ -404,19 +417,22 @@ function SettingsRow({ platform, on, onToggle }: { platform: string; on: boolean
   );
 }
 
-/** « Card » (Music Share DLS) : pochette + titre/artiste du morceau résolu. */
+/** « Card » (Music Share DLS) : pochette + titre/artiste du morceau résolu.
+ *  Pochette : 48px desktop / 56px mobile (parité Figma `Platform`). */
 function MediaCard({ image, title, artist }: { image?: string; title: string; artist: string }) {
+  const platform = usePlatformContext();
+  const cover = platform === "mobile" ? "h-14 w-14" : "h-12 w-12";
   return (
     <div className="flex items-center gap-3 rounded-xl border border-line bg-card p-2.5">
       {image ? (
         <img
           src={image}
           alt=""
-          className="h-12 w-12 shrink-0 rounded-lg object-cover shadow-lg shadow-black/40"
+          className={`${cover} shrink-0 rounded-lg object-cover shadow-lg shadow-black/40`}
           draggable={false}
         />
       ) : (
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-subtle text-lg">
+        <div className={`${cover} flex shrink-0 items-center justify-center rounded-lg bg-subtle text-lg`}>
           🎵
         </div>
       )}
@@ -507,48 +523,43 @@ function PlatformRow({ link }: { link: PlatformLink }) {
   const [copied, copy] = useCopy();
   const color = PLATFORM_COLOR[link.platform] ?? "#a1a1aa";
   const isWeb = /^https?:/i.test(link.url);
+  // logo 24px (parité Figma « Logo ») ; la couleur de marque est portée ici,
+  // ListItem gère le grisage en état notfound.
+  const logo = (
+    <span style={{ color }} className="inline-flex">
+      {PLATFORM_LOGO(link.platform, "h-6 w-6")}
+    </span>
+  );
 
-  // Plateforme vérifiable (Deezer/Apple) où le morceau exact est absent :
-  // ligne grisée, non cliquable, sans copie — on assume « introuvable ».
   if (link.kind === "notfound") {
-    return (
-      <div className="flex items-center gap-3 rounded-xl border border-line bg-card px-3.5 py-2.5 opacity-55">
-        <span style={{ color }} className="shrink-0 grayscale">
-          {PLATFORM_LOGO(link.platform, "h-4.5 w-4.5")}
-        </span>
-        <span className="flex-1 truncate text-[13px] font-medium text-muted">{link.name}</span>
-        <span className="shrink-0 text-[11px] text-faint">Not found</span>
-      </div>
-    );
+    return <ListItem state="notfound" logo={logo} label={link.name} />;
   }
 
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-line bg-card py-1.5 pl-3.5 pr-1.5 transition hover:bg-card-hover">
-      <a
-        href={link.url}
-        target={isWeb ? "_blank" : undefined}
-        rel="noreferrer"
-        className="flex min-w-0 flex-1 items-center gap-3"
-        title={`Open in ${link.name}`}
-      >
-        <span style={{ color }} className="shrink-0">
-          {PLATFORM_LOGO(link.platform, "h-4.5 w-4.5")}
-        </span>
-        <span className="truncate text-[13px] font-medium text-fg">{link.name}</span>
-        {link.kind === "search" && <Badge className="shrink-0">search</Badge>}
-      </a>
-      <IconButton
-        shape="square"
-        size="s"
-        onClick={() => copy(link.url)}
-        title="Copy link"
-        aria-label="Copy link"
-        // état « copié » : accent persistant (inline pour primer sur .dls-icon-btn)
-        style={copied ? { color: "var(--text-accent)" } : undefined}
-      >
-        {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
-      </IconButton>
-    </div>
+    <ListItem
+      logo={logo}
+      label={link.name}
+      badge={link.kind === "search" ? <Badge className="shrink-0">search</Badge> : undefined}
+      href={link.url}
+      linkProps={{
+        target: isWeb ? "_blank" : undefined,
+        rel: "noreferrer",
+        title: `Open in ${link.name}`,
+      }}
+      action={
+        <IconButton
+          shape="square"
+          size="s"
+          onClick={() => copy(link.url)}
+          title="Copy link"
+          aria-label="Copy link"
+          // état « copié » : accent persistant (inline pour primer sur .dls-icon-btn)
+          style={copied ? { color: "var(--text-accent)" } : undefined}
+        >
+          {copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />}
+        </IconButton>
+      }
+    />
   );
 }
 
@@ -575,6 +586,7 @@ function ShareButton({
   links: PlatformLink[];
   bonus: PlatformLink[];
 }) {
+  const platform = usePlatformContext();
   const onShare = async () => {
     try {
       await navigator.share({
@@ -586,7 +598,7 @@ function ShareButton({
     }
   };
   return (
-    <Button variant="primary" onClick={onShare} icon={<ShareIcon size={16} />}>
+    <Button variant="primary" platform={platform} onClick={onShare} icon={<ShareIcon size={16} />}>
       Share
     </Button>
   );
@@ -671,6 +683,7 @@ function CopyAllButton({
   /** style discret quand un bouton « Share » primaire est présent au-dessus */
   secondary?: boolean;
 }) {
+  const platform = usePlatformContext();
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -688,6 +701,7 @@ function CopyAllButton({
   return (
     <Button
       variant={secondary ? "secondary" : "primary"}
+      platform={platform}
       state={copied ? "success" : "default"}
       onClick={onClick}
     >

@@ -5,6 +5,48 @@ plateformes. Deux supports **iso-fonctionnels** : **Web** (PWA, streamylink.vinc
 et **App macOS** (barre de menus, Tauri). ⚠️ **Toute évolution fonctionnelle = les DEUX
 supports.** Logique + UI partagées ; seules les coquilles diffèrent.
 
+## Definition of Done (toute nouvelle version fonctionnelle)
+Une évolution fonctionnelle n'est **terminée** que quand les 4 volets sont faits (en plus
+de l'iso-fonctionnel Web + Desktop ci-dessus) :
+1. **Composants Figma** : créer / mettre à jour les composants (+ variants/états) dans la lib
+   concernée — **DLS Core** (`FRFEzZgOLYRcT6p2ZTZ57M`) pour le générique, **Music Share DLS**
+   (`j4RF4KaKHj7mbCeAkS7cG8`) pour l'app-spécifique. Un nouvel état = **variant du même
+   component set** (ex. `State=Not found`), pas un composant orphelin.
+2. **Écrans dédiés Figma** : créer / mettre à jour les écrans qui utilisent ces composants
+   dans le fichier **Music-Share** (`e83oEhWcFuH2Zx08nMywkZ`, page « Screens »).
+3. **Liaison avec le code** : brancher l'UI (`ResolverPanel` + coquilles) sur ces composants /
+   états, et refléter les tokens (`dls-core`).
+4. **Page statique de présentation** : ajouter / mettre à jour l'entrée dans
+   `dls-core/gallery.html` (référence visuelle vivante, tous composants × états).
+
+## Synchro 1:1 Figma ↔ code (parité Desktop/Mobile) — FAIT (à déployer)
+**Objectif** : le code rend exactement les variants Figma selon la plateforme.
+**Mécanisme** : `src/ui/usePlatform.ts` = source unique de vérité → `usePlatform()` (`"desktop" | "mobile"`,
+détecté via `(pointer: coarse)` + `maxTouchPoints`, réactif) + **contexte** `PlatformProvider` /
+`usePlatformContext()` diffusé en tête de `ResolverPanel` (donc les 2 coquilles). Popover Tauri → desktop ;
+web iPhone/iPad → mobile ; web bureau → desktop.
+
+**Composants câblés** (vérifié live, hauteur desktop / mobile) :
+| Composant | Desktop | Mobile | Où |
+|---|---|---|---|
+| Input (DLS Core) | 44 · **13px** | **56** · **16px** | `platform` prop (+ hauteur réelle via token) |
+| Button (DLS Core) | 44 | **56** | `platform` prop (Continue/Share/Copy all) |
+| Icon button / gear (DLS Core) | 44 | **56** | **prop `platform` ajoutée à dls-core** (`.dls-icon-btn--desktop/--mobile`) |
+| List item (`src/ui/ListItem.tsx`) | 48 | 64 | app-spécifique, lit le contexte ; logo 24 |
+| Card / MediaCard | cover 48 | cover 56 | lit le contexte |
+| Settings row | 48 | 56 | lit le contexte ; logo 24 |
+
+**Identiques Desktop/Mobile → rien à câbler** : Toggle (20), Badge (22), Chip (23).
+**Exception documentée** : le bouton **copie** de la ligne reste **32px** aux 2 tailles (Figma : 24 desktop /
+32 mobile) — 24px est sous la cible tactile min ; on garde 32 pour l'a11y.
+**Supprimé** : le hack `font-size:16px !important` de `web/src/styles.css` (le 16px vient du variant DS).
+
+**Reste à faire** : **déployer**. dls-core `main` **poussé** (commit IconButton `platform`) ; l'app consomme
+`github:Vincenthouin/dls-core` → un `npm install` propre (CI/Render) récupère la nouvelle version. Déploiement
+web = push `main` ; desktop = release Tauri (cf. section desktop). `components.html` = colonnes Desktop/Mobile.
+**Règle de gouvernance** : toute nouvelle compo respecte le mapping `Platform` (via `usePlatform`) — jamais de
+taille mobile en dur ; le 16px anti-zoom iOS passe par le variant DS `Input platform="mobile"`, pas par du CSS.
+
 ## Architecture
 - `src/core/resolver.ts` : résolution partagée (pure), `fetch` injectable via `setFetch()`.
 - `src/ui/ResolverPanel.tsx` : **toute l'UI partagée** (+ `settings.ts`, `logos.tsx`, `theme.css`).
