@@ -37,8 +37,9 @@ web iPhone/iPad → mobile ; web bureau → desktop.
 | Settings row | 48 | 56 | lit le contexte ; logo 24 |
 
 **Identiques Desktop/Mobile → rien à câbler** : Toggle (20), Badge (22), Chip (23).
-**Exception documentée** : le bouton **copie** de la ligne reste **32px** aux 2 tailles (Figma : 24 desktop /
-32 mobile) — 24px est sous la cible tactile min ; on garde 32 pour l'a11y.
+**Bouton copie de la ligne** : `IconButton size` **xs 24px desktop / s 32px mobile** (Figma List item
+`action`) — le minimum tactile ne concerne que le mobile (déjà 32) ; en desktop (souris) 24px est OK.
+`xs` (24) ajouté à `IconButton` dans dls-core.
 **Supprimé** : le hack `font-size:16px !important` de `web/src/styles.css` (le 16px vient du variant DS).
 
 **Reste à faire** : **déployer**. dls-core `main` **poussé** (commit IconButton `platform`) ; l'app consomme

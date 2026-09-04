@@ -41,9 +41,11 @@
   padding:0;border:none;background:transparent;color:var(--text-tertiary);cursor:pointer;
   transition:background-color .15s ease,color .15s ease;}
 .dls-icon-btn--s{width:var(--number-32);height:var(--number-32);}
+.dls-icon-btn--xs{width:24px;height:24px;}
 .dls-icon-btn--desktop{width:44px;height:44px;}
 .dls-icon-btn--mobile{width:56px;height:56px;}
-.dls-icon-btn--square.dls-icon-btn--s{border-radius:var(--radius-sm);}
+.dls-icon-btn--square.dls-icon-btn--s,
+.dls-icon-btn--square.dls-icon-btn--xs{border-radius:var(--radius-sm);}
 .dls-icon-btn--square.dls-icon-btn--desktop,
 .dls-icon-btn--square.dls-icon-btn--mobile{border-radius:var(--radius-md);}
 .dls-icon-btn:hover{background:var(--surface-subtle);color:var(--text-primary);}
@@ -115,13 +117,13 @@ section>.desc code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-
       <code>notfound</code> (Deezer/Apple vérifiables, morceau absent : ligne grisée, sans copie).
     </p>
     <div class="stage">
-      <div class="row row--action row--desktop"><span class="logo" data-logo="deezer"></span><span class="label">Deezer</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--s" data-icon="copy" aria-label="Copy link"></button></div>
-      <div class="row row--action row--desktop"><span class="logo" data-logo="appleMusic"></span><span class="label">Apple Music</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--s" data-icon="copy" aria-label="Copy link"></button></div>
+      <div class="row row--action row--desktop"><span class="logo" data-logo="deezer"></span><span class="label">Deezer</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--xs" data-icon="copy" aria-label="Copy link"></button></div>
+      <div class="row row--action row--desktop"><span class="logo" data-logo="appleMusic"></span><span class="label">Apple Music</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--xs" data-icon="copy" aria-label="Copy link"></button></div>
     </div>
     <p class="caption"><b>direct</b> · Deezer / Apple Music</p>
     <div class="stage">
-      <div class="row row--action row--desktop"><span class="logo" data-logo="spotify"></span><span class="label">Spotify</span><span class="dls-badge">search</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--s" data-icon="copy" aria-label="Copy link"></button></div>
-      <div class="row row--action row--desktop"><span class="logo" data-logo="qobuz"></span><span class="label">Qobuz</span><span class="dls-badge">search</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--s" data-icon="copy" aria-label="Copy link"></button></div>
+      <div class="row row--action row--desktop"><span class="logo" data-logo="spotify"></span><span class="label">Spotify</span><span class="dls-badge">search</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--xs" data-icon="copy" aria-label="Copy link"></button></div>
+      <div class="row row--action row--desktop"><span class="logo" data-logo="qobuz"></span><span class="label">Qobuz</span><span class="dls-badge">search</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--xs" data-icon="copy" aria-label="Copy link"></button></div>
     </div>
     <p class="caption"><b>search</b> · Spotify / Qobuz (pas d'API pour confirmer)</p>
     <div class="stage">
@@ -137,10 +139,11 @@ section>.desc code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-
     <p class="desc">
       Variant Figma <code>Platform</code> piloté par <code>usePlatform()</code> (pointeur tactile → mobile).
       La ligne passe de <b>48px</b> à <b>64px</b> (cible tactile) ; les contrôles 44→<b>56px</b>
-      (engrenage, Input — 13→16px anti-zoom —, Button). Logo <b>24px</b> aux deux tailles.
+      (engrenage, Input — 13→16px anti-zoom —, Button) ; le bouton copie 24→<b>32px</b>.
+      Logo <b>24px</b> aux deux tailles.
     </p>
     <div class="stage">
-      <div class="row row--action row--desktop"><span class="logo" data-logo="deezer"></span><span class="label">Deezer</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--s" data-icon="copy" aria-label="Copy link"></button></div>
+      <div class="row row--action row--desktop"><span class="logo" data-logo="deezer"></span><span class="label">Deezer</span><button class="dls-icon-btn dls-icon-btn--square dls-icon-btn--xs" data-icon="copy" aria-label="Copy link"></button></div>
     </div>
     <p class="caption"><b>Desktop</b> · 48px</p>
     <div class="stage">

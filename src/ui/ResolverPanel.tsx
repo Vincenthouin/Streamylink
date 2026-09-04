@@ -520,6 +520,7 @@ function useCopy(): [boolean, (text: string) => void] {
 }
 
 function PlatformRow({ link }: { link: PlatformLink }) {
+  const platform = usePlatformContext();
   const [copied, copy] = useCopy();
   const color = PLATFORM_COLOR[link.platform] ?? "#a1a1aa";
   const isWeb = /^https?:/i.test(link.url);
@@ -549,7 +550,8 @@ function PlatformRow({ link }: { link: PlatformLink }) {
       action={
         <IconButton
           shape="square"
-          size="s"
+          // action de ligne = Figma List item `action` : 24px desktop / 32px mobile
+          size={platform === "mobile" ? "s" : "xs"}
           onClick={() => copy(link.url)}
           title="Copy link"
           aria-label="Copy link"
