@@ -328,7 +328,7 @@ function youtubeVideoId(url: string): string | null {
 // entre parenthèses/crochets et contient un de ces mots-clés — un titre comme
 // « Video Games » (sans parenthèses) n'est pas touché.
 const YT_NOISE =
-  /\s*[([【][^)\]】]*\b(official|lyrics?|audio|video|visuali[sz]er|clip|mv|hd|4k|remaster(?:ed)?|explicit|prod\.?)\b[^)\]】]*[)\]】]/gi;
+  /\s*[([【][^)\]】]*\b(official|lyrics?|audio|video|visuali[sz]er|clip|mv|hd|4k|remaster(?:ed)?|explicit|prod\.?|remix|re-?edit|edit|mix|live|acoustic|unplugged|cover|mashup|bootleg|instrumental|sped\s?-?up|slowed|reverb|extended|vip|flip|rework|nightcore)\b[^)\]】]*[)\]】]/gi;
 
 function cleanTitlePart(s: string): string {
   return s
