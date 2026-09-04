@@ -21,6 +21,12 @@ supports.** Logique + UI partagées ; seules les coquilles diffèrent.
   POST le HTML (`qobuzOgUrl`, `parseQobuzOgHtml`). Single Qobuz : suivre `music:song` (`qobuzSingleTrackUrl`).
 - **Deezer** : quota transitoire depuis Render → tout passe par `deezerJson()` (retry) ;
   suivre redirections `link.deezer.com/s/…`, `dzr.page.link`. `get()` retente 3× réseau/timeout.
+- **YouTube en ENTRÉE** (`getYouTubeTrackInfo`) : métadonnées via l'**API oEmbed** (`youtube.com/oembed`,
+  publique, sans clé) → parseur titre/artiste (split `-`, strip `(Official Video)`/`ft.`, chaînes `- Topic`/VEVO),
+  pochette = miniature `i.ytimg.com`. **Pas d'ISRC** → recherche texte. Garde-fou faux positifs : `bestDeezerTrack`
+  (score artiste+titre ≥ 2, comme iTunes) → un lien **non musical** ne renvoie pas un morceau au hasard.
+  Pièges : **oEmbed renvoie 404** pour certaines vidéos (intégration restreinte / indispo) → « unavailable » ;
+  côté **Tauri, ajouter `youtube.com` à l'allowlist HTTP** (`src-tauri/capabilities/default.json`).
 
 ## Desktop = Tauri (arm64, non signé, Apple Silicon only)
 - Auto-update (plugin updater) : clé privée `~/.tauri/musicshare-updater.key` (hors repo, À SAUVEGARDER) ;

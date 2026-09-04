@@ -44,6 +44,22 @@ export function LinkIcon({ className }: LogoProps) {
   );
 }
 
+export function YouTubeLogo({ className }: LogoProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z" />
+    </svg>
+  );
+}
+
+export function YouTubeMusicLogo({ className }: LogoProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm0 19.2A7.2 7.2 0 1 1 12 4.8a7.2 7.2 0 0 1 0 14.4zM9.6 8.4l6 3.6-6 3.6V8.4z" />
+    </svg>
+  );
+}
+
 export function PLATFORM_LOGO(platform: string, className: string) {
   switch (platform) {
     case "spotify":
@@ -54,6 +70,10 @@ export function PLATFORM_LOGO(platform: string, className: string) {
       return <DeezerLogo className={className} />;
     case "qobuz":
       return <QobuzLogo className={className} />;
+    case "youtube":
+      return <YouTubeLogo className={className} />;
+    case "youtubeMusic":
+      return <YouTubeMusicLogo className={className} />;
     default:
       return <LinkIcon className={className} />;
   }
@@ -64,4 +84,6 @@ export const PLATFORM_COLOR: Record<string, string> = {
   appleMusic: "#FA2D48",
   deezer: "#A238FF",
   qobuz: "#4A90D9",
+  youtube: "#FF0000",
+  youtubeMusic: "#FF0000",
 };

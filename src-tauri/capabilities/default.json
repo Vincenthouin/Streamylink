@@ -27,7 +27,9 @@
         { "url": "https://*.page.link/" },
         { "url": "https://itunes.apple.com/" },
         { "url": "https://*.song.link/" },
-        { "url": "https://song.link/" }
+        { "url": "https://song.link/" },
+        { "url": "https://*.youtube.com/" },
+        { "url": "https://youtube.com/" }
       ]
     }
   ]

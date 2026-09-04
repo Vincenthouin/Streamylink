@@ -169,7 +169,7 @@ export function ResolverPanel({
             value={input}
             spellCheck={false}
             autoFocus
-            aria-label="Paste a Spotify, Apple Music, Deezer or Qobuz link"
+            aria-label="Paste a Spotify, Apple Music, Deezer, Qobuz or YouTube link"
             // garde l'alignement du placeholder animé (14px) et laisse la place
             // au bouton « effacer » (32px) à droite
             style={{ paddingLeft: "0.875rem", paddingRight: "2rem" }}
@@ -262,7 +262,7 @@ export function ResolverPanel({
 
 /** Placeholder animé : « Paste your <Platform> link » qui défile toutes les 2 s
  *  (le libellé courant glisse vers le haut, le suivant arrive du bas). */
-const PLATFORM_PROMPTS = ["Spotify", "Apple Music", "Deezer", "Qobuz", "Amazon Music", "Tidal"];
+const PLATFORM_PROMPTS = ["Spotify", "Apple Music", "Deezer", "Qobuz", "YouTube", "Amazon Music", "Tidal"];
 
 function RotatingPlaceholder({ rightGap }: { rightGap: boolean }) {
   const [i, setI] = useState(0);
